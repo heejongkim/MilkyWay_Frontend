@@ -72,11 +72,14 @@ server <- function(input, output, session) {
           Username <- isolate(input$userName)
           Password <- isolate(input$passwd)
           if (length(Username) > 0 & length(Password) > 0) {
-            galaxy_con <- GET("http://openms.bioinformatics.ucla.edu/api/authenticate/baseauth", authenticate(Username, Password))
+            galaxy_con <- GET("http://192.168.2.102/api/authenticate/baseauth", authenticate(Username, Password))
             if (status_code(galaxy_con) == 200) {
               USER$Logged <- TRUE
               USER$api_key <- content(galaxy_con)$api_key
-            } 
+            }
+            else{
+              cat(content(galaxy_con))
+            }
           }
         } 
       }
@@ -900,7 +903,7 @@ server <- function(input, output, session) {
       wellPanel(textInput("userName", "Galaxy Username (Email Address Form)"),
                 passwordInput("passwd", "Password"),
                 br(), actionButton("Login", "Log in"),
-                br(), helpText("Version 0.3.4 - Updated: 2017/05/27"))
+                br(), helpText("Version 0.3.4 - Updated: 2017/07/14"))
     }
   })
   ##### /LOGIN page associated server side code
@@ -911,7 +914,7 @@ server <- function(input, output, session) {
   observe({
     if (USER$api_key != ""){
       gx_init(USER$api_key,
-              GALAXY_URL='http://openms.bioinformatics.ucla.edu/',
+              GALAXY_URL='http://192.168.2.102/',
               HISTORY_ID = "")
       history <- gx_list_histories()
       history <- cbind(history_index = rownames(history), history)
@@ -1498,23 +1501,26 @@ server <- function(input, output, session) {
   ## Handling the Quant Type Ratio processing (including associated protein lists)
   quant_type_ratio_values <- reactiveValues(documents = NULL)
   observe({
-    comparison_csv <- MSstats_comparison_df()
-    spc_table <- spc_df()
-    # pivot comparison_csv with ImputationPercentage column <- something that contains NO NA value
-    cast_comparison <- dcast(comparison_csv, Protein ~ Label, value.var = "ImputationPercentage")
-    merged_spc_comp <- merge(x=cast_comparison, y=spc_table, by.x="Protein", by.y="ProteinID", all=TRUE)
-
-    # extract NA rows or !NA rows
-    spc_only_df <- merged_spc_comp[rowSums(is.na(merged_spc_comp))>0,]
-    msstats_df <- merged_spc_comp[rowSums(is.na(merged_spc_comp))==0,]
+    if(analysis_type() == "lfq"){
+      comparison_csv <- MSstats_comparison_df()
+      spc_table <- spc_df()
+      # pivot comparison_csv with ImputationPercentage column <- something that contains NO NA value
+      cast_comparison <- dcast(comparison_csv, Protein ~ Label, value.var = "ImputationPercentage")
+      merged_spc_comp <- merge(x=cast_comparison, y=spc_table, by.x="Protein", by.y="ProteinID", all=TRUE)
+      
+      # extract NA rows or !NA rows
+      spc_only_df <- merged_spc_comp[rowSums(is.na(merged_spc_comp))>0,]
+      msstats_df <- merged_spc_comp[rowSums(is.na(merged_spc_comp))==0,]
+      
+      # convert protein column to vector to be used for filtering the protein table
+      quant_type_ratio_values$spc_only_protein_list <- as.vector(spc_only_df[['Protein']])
+      quant_type_ratio_values$msstats_protein_list <- as.vector(msstats_df[['Protein']])
+      
+      # number of proteins
+      quant_type_ratio_values$spc_only_count <- length(quant_type_ratio_values$spc_only_protein_list)
+      quant_type_ratio_values$msstats_count <- length(quant_type_ratio_values$msstats_protein_list)
+    }
     
-    # convert protein column to vector to be used for filtering the protein table
-    quant_type_ratio_values$spc_only_protein_list <- as.vector(spc_only_df[['Protein']])
-    quant_type_ratio_values$msstats_protein_list <- as.vector(msstats_df[['Protein']])
-    
-    # number of proteins
-    quant_type_ratio_values$spc_only_count <- length(quant_type_ratio_values$spc_only_protein_list)
-    quant_type_ratio_values$msstats_count <- length(quant_type_ratio_values$msstats_protein_list)
   })
   ## SpC vs MSstats Quant Type Ratio horizontal barplot (interactive plotly)
   output$quantratio_barplot <- renderPlotly({
@@ -2580,7 +2586,7 @@ server <- function(input, output, session) {
   ###### Galaxy upload global
   options(shiny.maxRequestSize=50000*1024^2)
   
-  galaxy_address<-'openms.bioinformatics.ucla.edu'
+  galaxy_address<-'192.168.2.102'
   galaxy_API_key<-reactive({USER$api_key})
   
   fileName= c("example-file-1.raw","example-file-2-A.raw","example-file-2-B.raw",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA)
