@@ -1,5 +1,5 @@
 # MilkyWay
-# version: 0.3.4
+# version: 0.3.5
 # Author: Hee Jong Kim, William Barshop
 
 #library(org.Hs.eg.db)
@@ -72,7 +72,7 @@ server <- function(input, output, session) {
           Username <- isolate(input$userName)
           Password <- isolate(input$passwd)
           if (length(Username) > 0 & length(Password) > 0) {
-            galaxy_con <- GET("http://192.168.2.102/api/authenticate/baseauth", authenticate(Username, Password))
+            galaxy_con <- GET("http://127.0.0.1/api/authenticate/baseauth", authenticate(Username, Password))
             if (status_code(galaxy_con) == 200) {
               USER$Logged <- TRUE
               USER$api_key <- content(galaxy_con)$api_key
@@ -914,7 +914,7 @@ server <- function(input, output, session) {
   observe({
     if (USER$api_key != ""){
       gx_init(USER$api_key,
-              GALAXY_URL='http://192.168.2.102/',
+              GALAXY_URL='http://127.0.0.1/',
               HISTORY_ID = "")
       history <- gx_list_histories()
       history <- cbind(history_index = rownames(history), history)
@@ -1070,7 +1070,7 @@ server <- function(input, output, session) {
         e[["protein_saint_table"]]$description <- as.character(e[["protein_saint_table"]]$description)
       }
       
-      e[["exp_design_for_pViz"]] <- e[["experiment_design"]][,c("Original File Name", "Biological Condition")]
+      e[["exp_design_for_pViz"]] <- e[["qual_experiment_design"]][,c("Original File Name", "Biological Condition")]
       colnames(e[["exp_design_for_pViz"]])[colnames(e[["exp_design_for_pViz"]]) == 'Original File Name'] <- "category"
       incProgress(23/23)
     })
@@ -1081,7 +1081,7 @@ server <- function(input, output, session) {
   job_history <- eventReactive(input$loading, {e[["job_history"]]})
   fasta_df <- eventReactive(input$loading, {e[["fasta_df"]]})
   protein_saint_table <- eventReactive(input$loading, {e[["protein_saint_table"]]})
-  experiment_design_df <- eventReactive(input$loading, {e[["experiment_design"]]})
+  qual_experiment_design_df <- eventReactive(input$loading, {e[["qual_experiment_design"]]})
   exp_design_for_pViz <- eventReactive(input$loading, {e[["exp_design_for_pViz"]]})
   nsaf_df <- eventReactive(input$loading, {e[["nsaf_table"]]})
   spc_df <- eventReactive(input$loading, {e[["spc_table"]]})
@@ -1097,6 +1097,7 @@ server <- function(input, output, session) {
   outputOptions(output, 'analysis_selector', suspendWhenHidden = FALSE)
   
   ## ONLY LFQ LOADING
+  quant_experiment_design_df <- eventReactive(input$loading, {e[["quant_experiment_design"]]})
   MSstats_comparison_df <- eventReactive(input$loading, if(analysis_type() == "lfq"){e[["MSstats_comparison_df"]]})
   MSstats_quant_df <- eventReactive(input$loading, if(analysis_type() == "lfq"){e[["quantification_csv"]]})
   MSstats_condition_plot_df <- eventReactive(input$loading, if(analysis_type() == "lfq"){e[["condition_plot_csv"]]})
@@ -1137,7 +1138,7 @@ server <- function(input, output, session) {
   ### Experiment Design Diagram
   exp_diagram_process <- reactive({
     withProgress(message = "Drawing Experiment Diagram", value = 0, {
-      graph <- exp_diagram(experiment_design_df())
+      graph <- exp_diagram(qual_experiment_design_df())
     })
   })
   # For LFQ
@@ -1157,7 +1158,7 @@ server <- function(input, output, session) {
   ### Delta Mass Plot
   ppm_hist_process <- reactive({
     withProgress(message = "Drawing Delta Mass Plot", value = 0, {
-      exp_design <- experiment_design_df()
+      exp_design <- qual_experiment_design_df()
       if(analysis_type() == "lfq"){q_value <- input$overview_qvalue_cutoff_lfq}
       if(analysis_type() == "qual"){q_value <- input$overview_qvalue_cutoff_qual}
       # Sort the table
@@ -1194,7 +1195,7 @@ server <- function(input, output, session) {
   ### PSM count Barplot
   psm_count_plot_process <- reactive({
     withProgress(message = "Drawing PSM Count Plot", value = 0, {
-      exp_design <- experiment_design_df()
+      exp_design <- qual_experiment_design_df()
       if(analysis_type() == "lfq"){q_value <- input$overview_qvalue_cutoff_lfq}
       if(analysis_type() == "qual"){q_value <- input$overview_qvalue_cutoff_qual}
       # Sort the table
@@ -1231,7 +1232,7 @@ server <- function(input, output, session) {
   ### Experiment Design Table
   # For LFQ
   output$experimental_design_table_lfq <- renderDataTable(
-    arrange.vars(experiment_design_df(), c("Test or Control"=1,
+    arrange.vars(qual_experiment_design_df(), c("Test or Control"=1,
                                            "Biological Condition"=2,
                                            "BioReplicate"=3,
                                            "Fractionation Group Name"=4,
@@ -1244,7 +1245,7 @@ server <- function(input, output, session) {
   )
   # For Qual
   output$experimental_design_table_qual <- renderDataTable(
-    arrange.vars(experiment_design_df(), c("Test or Control"=1,
+    arrange.vars(qual_experiment_design_df(), c("Test or Control"=1,
                                            "Biological Condition"=2,
                                            "BioReplicate"=3,
                                            "Fractionation Group Name"=4,
@@ -1385,7 +1386,7 @@ server <- function(input, output, session) {
   ### Unnormalized Peptide Area Distributions violin_plot_lfq
   output$unnorm_peptide_dist_violin_plot_lfq <- renderPlot({
     df <- msstats_skyline_input_df()[which(msstats_skyline_input_df()$annotation_QValue <= input$unnorm_peptide_dist_violin_plot_mprophet_qvalue),c("FileName", "Area", "annotation_QValue")]
-    exp_df <- experiment_design_df()
+    exp_df <- quant_experiment_design_df()
     # Add filename with extension
     exp_df$FilenameWithExt <- paste(exp_df$`Original File Name`, 
                                     tools::file_ext(levels(df$FileName)[1]), 
@@ -2060,7 +2061,7 @@ server <- function(input, output, session) {
     melt_spc <- melt(spc_df(), id="ProteinID")
     colnames(melt_spc)[colnames(melt_spc)=="variable"] <- "Original File Name"
     colnames(melt_spc)[colnames(melt_spc)=="value"] <- "SpC"
-    melt_spc <- merge(x=melt_spc, y=experiment_design_df()[, c("Original File Name", "Biological Condition")], by="Original File Name", all=TRUE)
+    melt_spc <- merge(x=melt_spc, y=qual_experiment_design_df()[, c("Original File Name", "Biological Condition")], by="Original File Name", all=TRUE)
     melt_spc$`Original File Name` <- NULL
     colnames(melt_spc)[colnames(melt_spc)=="Biological Condition"] <- "Condition"
     melt_spc <- aggregate(melt_spc[,"SpC"], list(melt_spc$ProteinID, melt_spc$Condition), mean)
@@ -2072,7 +2073,7 @@ server <- function(input, output, session) {
     spc_saint_msstats$Var.5 <- NULL
     spc_saint_msstats$description <- NULL
     # DSR SpC calculation
-    test_control_map <- unique(experiment_design_df()[,c("Biological Condition", "Test or Control")])
+    test_control_map <- unique(qual_experiment_design_df()[,c("Biological Condition", "Test or Control")])
     colnames(test_control_map) <- c("Condition", "TestControl")
     TestCondition <- as.character(test_control_map[test_control_map$TestControl=="T", "Condition"])
     ControlCondition <- as.character(test_control_map[test_control_map$TestControl=="C", "Condition"])
@@ -2157,7 +2158,7 @@ server <- function(input, output, session) {
       complex_heatmap(input$unidirectional,
                       input$quantCentering,
                       input$heatmap_pvalue_cutoff,
-                      experiment_design_df(),
+                      quant_experiment_design_df(),
                       MSstats_comparison_df(),
                       MSstats_quant_df(),
                       input$manual_k)
@@ -2469,7 +2470,7 @@ server <- function(input, output, session) {
     }
     ## Exp mapping with filename
     df <- msstats_skyline_input_df()[which(msstats_skyline_input_df()$annotation_QValue <= input$unnorm_peptide_dist_violin_plot_mprophet_qvalue),c("FileName", "Area", "annotation_QValue")]
-    exp_df <- experiment_design_df()
+    exp_df <- quant_experiment_design_df()
     # Add filename with extension
     exp_df$FilenameWithExt <- paste(exp_df$`Original File Name`, 
                                     tools::file_ext(levels(splited_each_chrom$FileName)[1]), 
@@ -2523,7 +2524,7 @@ server <- function(input, output, session) {
                                                                minPvalueFilter = input$excelPvalueHeatMap,
                                                                cluster_k = input$excelManual_k,
                                                                # data from RData
-                                                               experiment_design = experiment_design_df(),
+                                                               experiment_design = qual_experiment_design_df(),
                                                                comparison_csv = MSstats_comparison_df(),
                                                                fasta_df = fasta_df(),
                                                                saint_table = protein_saint_table(),
@@ -2558,7 +2559,7 @@ server <- function(input, output, session) {
                                                                peptide_q_value = input$excelPeptideQvalue,
                                                                protein_q_value = input$excelProteinQvalue,
                                                                # data from RData
-                                                               experiment_design = experiment_design_df(),
+                                                               experiment_design = qual_experiment_design_df(),
                                                                fasta_df = fasta_df(),
                                                                saint_table = protein_saint_table(),
                                                                spc_table = spc_df(),
@@ -2586,7 +2587,7 @@ server <- function(input, output, session) {
   ###### Galaxy upload global
   options(shiny.maxRequestSize=50000*1024^2)
   
-  galaxy_address<-'192.168.2.102'
+  galaxy_address<-'127.0.0.1'
   galaxy_API_key<-reactive({USER$api_key})
   
   fileName= c("example-file-1.raw","example-file-2-A.raw","example-file-2-B.raw",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA)
