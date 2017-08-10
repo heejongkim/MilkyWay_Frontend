@@ -1,5 +1,5 @@
 # MilkyWay
-# version: 0.3.5
+# version: 0.3.6a
 # Author: Hee Jong Kim, William Barshop
 
 #library(org.Hs.eg.db)
@@ -337,7 +337,13 @@ server <- function(input, output, session) {
         ####################################################################### Galaxy Upload tool server side code v.0.1.5
         tabItem(tabName = "galaxy_job_submitter",
                 fluidRow(
-                  fluidRow(
+                      box(
+                      title="Galaxy Job Design and Upload tool",
+                      width=12,
+                      id="galaxy_job_submitter_box",
+
+
+
                     h4("1. Choose an Experiment Name and provide required annotations:"),
                     textInput("historyName","Experiment Name:"),
                     wellPanel(h4("Enter full PI names below:"),
@@ -378,9 +384,19 @@ server <- function(input, output, session) {
                                      #h3("Save"), 
                                      actionButton("save", "Save table")
                                    )
-                  ), 
-                  rHandsontableOutput("hot")
+                  )
+
+
+                
+                ),
+                fluidRow(
+                   title="rhandson_box",
+                   id="handson_box",
+                   width="12",
+                   height="600px",
+                   rHandsontableOutput("hot")
                 )
+
         ),
         ####################################################################### /Galaxy Upload tool server side code v.0.1.5
         tabItem(tabName = "galaxy_history_browser",
