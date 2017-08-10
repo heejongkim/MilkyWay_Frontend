@@ -343,7 +343,8 @@ server <- function(input, output, session) {
                       id="galaxy_job_submitter_box",
 
 
-
+                    conditionalPanel(
+                    condition="!output.fastafileReceived",
                     h4("1. Choose an Experiment Name and provide required annotations:"),
                     textInput("historyName","Experiment Name:"),
                     wellPanel(h4("Enter full PI names below:"),
@@ -355,37 +356,38 @@ server <- function(input, output, session) {
                     ),
                     textInput("sampleContactName","Collaboration Contact Name:"),
                     helpText("e.g. \"Hee Jong Kim\" or \"Buck Strickland\" - This is usually the person who generated the biological material.")
-                  ),
+                    ),
                   conditionalPanel(
-                    condition = "input.historyName.length > 0 && input.pilastName.length > 0 && input.pifirstName.length > 0 && input.sampleContactName.length > 0",
+                    condition = "input.historyName.length > 0 && input.pilastName.length > 0 && input.pifirstName.length > 0 && input.sampleContactName.length > 0 && !output.fastafileReceived",
                     #h3("2. Upload files:"),
                     h4("2. Upload protein FASTA database:"),
                     helpText("Target sequences only!"),
-                    fileInput('fastafile','Select FASTA file',accept=c(".fasta",".FASTA")),
+                    fileInput('fastafile','Select FASTA file',accept=c(".fasta",".FASTA"))
+                    ),
                     conditionalPanel(
-                      condition = "output.fastafileReceived",
+                      condition = "output.fastafileReceived && !output.skylinefileReceived",
                       h4("3. Upload empty Skyline file:"),
                       helpText("File should be set up for the desired analysis, modifications, and acquisition parameters."),
                       fileInput('skylinefile','Select Skyline file', accept=c(".sky"))
                     ),
                     conditionalPanel(
-                      condition = "output.skylinefileReceived",
+                      condition = "output.skylinefileReceived && !output.datafilesReceived",
                       h4("4. Upload mass spec data:"),
                       helpText("mzML files should be zlib compressed and centroided"),
                       fileInput('files', 'Choose raw/mzML files', accept=c('.raw','.mzML','.mzml'),multiple=TRUE)
                     ),
                     verbatimTextOutput('uploadedFASTA'),
                     verbatimTextOutput('uploadedSkyline'),
-                    verbatimTextOutput('uploaded')
-                  ),
+                    verbatimTextOutput('uploaded'),
+                  
                   conditionalPanel(condition="output.datafilesReceived",
                                    wellPanel(
                                      h4("5. Edit the table below, and click here to send\nthe experimental design to Galaxy"),
                                      #h3("Save"), 
                                      actionButton("save", "Save table")
                                    )
-                  )
-
+                      )
+                    )
 
                 
                 ),
