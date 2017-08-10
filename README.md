@@ -1,4 +1,4 @@
-# MilkyWay - 0.3.4
+# MilkyWay - 0.3.5
 
 # Known Issue: 
 * In PSM-ID tab, the selected peptide's filtered PSM table for Lorikeet can be woefully presented if the last clicked row's index is bigger than the newly selected peptide's PSM list's total number of rows. Still working on what's the best way to handle this at this point.
