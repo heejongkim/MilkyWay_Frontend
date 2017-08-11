@@ -1,5 +1,5 @@
 # MilkyWay
-# version: 0.3.6b
+# version: 0.3.6d
 # Author: Hee Jong Kim, William Barshop
 
 #library(org.Hs.eg.db)
@@ -336,69 +336,163 @@ server <- function(input, output, session) {
       tabItems(
         ####################################################################### Galaxy Upload tool server side code v.0.1.5
         tabItem(tabName = "galaxy_job_submitter",
-                fluidRow(
-                      box(
-                      title="Galaxy Job Design and Upload tool",
-                      width=12,
-                      id="galaxy_job_submitter_box",
+				tabBox(
+					title="Galaxy Job Design and Upload tool",
+					width=12,
+					id="galaxy_upload_tabbox",
+					
+					tabPanel(#LFQ Comparison TabPanel
+						title="LFQ Intensity Comparative Analysis (DIA or DDA)",
+						width=12,
+						id="lfq_tab_panel",
+						fluidRow(
+							  box(
+							  #title="Galaxy Job Design and Upload tool",
+							  width=12,
+							  id="galaxy_job_submitter_box_lfq",
 
 
-                    conditionalPanel(
-                    condition="!output.fastafileReceived",
-                    h4("1. Choose an Experiment Name and provide required annotations:"),
-                    textInput("historyName","Experiment Name:"),
-                    wellPanel(h4("Enter full PI names below:"),
-                              splitLayout(        inputPanel(textInput("pifirstName","PI First Name (Full):")),#,
-                                                  #helpText("e.g. \"James\"")),
-                                                  inputPanel(textInput("pilastName","PI Last Name (Full):"))#,
-                                                  #helpText("e.g. \"Wohlschlegel\""))
-                              )
-                    ),
-                    textInput("sampleContactName","Collaboration Contact Name:"),
-                    helpText("e.g. \"Hee Jong Kim\" or \"Buck Strickland\" - This is usually the person who generated the biological material.")
-                    ),
-                  conditionalPanel(
-                    condition = "input.historyName.length > 0 && input.pilastName.length > 0 && input.pifirstName.length > 0 && input.sampleContactName.length > 0 && !output.fastafileReceived",
-                    #h3("2. Upload files:"),
-                    h4("2. Upload protein FASTA database:"),
-                    helpText("Target sequences only!"),
-                    fileInput('fastafile','Select FASTA file',accept=c(".fasta",".FASTA"))
-                    ),
-                    conditionalPanel(
-                      condition = "output.fastafileReceived && !output.skylinefileReceived",
-                      h4("3. Upload empty Skyline file:"),
-                      helpText("File should be set up for the desired analysis, modifications, and acquisition parameters."),
-                      fileInput('skylinefile','Select Skyline file', accept=c(".sky"))
-                    ),
-                    conditionalPanel(
-                      condition = "output.skylinefileReceived && !output.datafilesReceived",
-                      h4("4. Upload mass spec data:"),
-                      helpText("mzML files should be zlib compressed and centroided"),
-                      fileInput('files', 'Choose raw/mzML files', accept=c('.raw','.mzML','.mzml'),multiple=TRUE)
-                    ),
-                    verbatimTextOutput('uploadedFASTA'),
-                    verbatimTextOutput('uploadedSkyline'),
-                    verbatimTextOutput('uploaded'),
-                  
-                  conditionalPanel(condition="output.datafilesReceived",
-                                   wellPanel(
-                                     h4("5. Edit the table below, and click here to send\nthe experimental design to Galaxy"),
-                                     #h3("Save"), 
-                                     actionButton("save", "Save table")
-                                   )
-                      )
-                    )
+							conditionalPanel(
+							condition="!output.fastafileReceived",
+							h2("1. Choose an Experiment Name and provide required annotations:"),
+							textInput("historyName","Experiment Name:"),
+							wellPanel(h4("Enter full PI names below:"),
+									  splitLayout(        inputPanel(textInput("pifirstName","PI First Name (Full):")),#,
+														  #helpText("e.g. \"James\"")),
+														  inputPanel(textInput("pilastName","PI Last Name (Full):"))#,
+														  #helpText("e.g. \"Wohlschlegel\""))
+									  )
+							),
+							textInput("sampleContactName","Collaboration Contact Name:"),
+							helpText("e.g. \"Hee Jong Kim\" or \"Buck Strickland\" - This is usually the person who generated the biological material.")
+							),
+						  conditionalPanel(
+							condition = "input.historyName.length > 0 && input.pilastName.length > 0 && input.pifirstName.length > 0 && input.sampleContactName.length > 0 && !output.fastafileReceived",
+							#h3("2. Upload files:"),
+							h2("2. Upload protein FASTA database:"),
+							helpText("Target sequences only!"),
+							fileInput('fastafile','Select FASTA file',accept=c(".fasta",".FASTA"))
+							),
+							conditionalPanel(
+							  condition = "output.fastafileReceived && !output.skylinefileReceived",
+							  h2("3. Upload empty Skyline file:"),
+							  helpText("File should be set up for the desired analysis, modifications, and acquisition parameters."),
+							  fileInput('skylinefile','Select Skyline file', accept=c(".sky"))
+							),
+							conditionalPanel(
+							  condition = "output.skylinefileReceived && !output.datafilesReceived",
+							  h2("4. Upload mass spec data:"),
+							  helpText("mzML files should be zlib compressed and centroided"),
+							  fileInput('files', 'Choose raw/mzML files', accept=c('.raw','.mzML','.mzml'),multiple=TRUE)
+							),
+							verbatimTextOutput('uploadedFASTA'),
+							verbatimTextOutput('uploadedSkyline'),
+							verbatimTextOutput('uploaded'),
+						  
+						  conditionalPanel(condition="output.datafilesReceived",
+										   wellPanel(
+											 h2("5. Edit the table below, and click the save button below to send\nthe experimental design to Galaxy"),
+											 #h3("Save"), 
+											 actionButton("save", "Save table")
+										   )
+										)
+							)#end of the box
+						),
+						fluidRow(
+						   title="rhandson_box_lfq",
+						   id="handson_box_lfq",
+						   width="12",
+						   #height="600px",
+						   box(
+								title="Experimental Design Table",
+								id="interior_handson_box_lfq",
+								width=12,
+								
+								rHandsontableOutput("hot")
+						   )
+						)
+					),#end of LFQ tabPanel
 
-                
-                ),
-                fluidRow(
-                   title="rhandson_box",
-                   id="handson_box",
-                   width="12",
-                   height="600px",
-                   rHandsontableOutput("hot")
-                )
+					tabPanel(#Qualitative Analysis tabPanel
+						title="Qualitative Analysis",
+						width=12,
+						id="qa_tab_panel",
+						fluidRow(
+							box(
+								#title="Galaxy Job Design and Upload tool",
+								width=12,
+								id="galaxy_job_submitter_box_qa"
+								), #below this goes another rhansdsontable
+						fluidRow(
+						   title="rhandson_box_qa",
+						   id="handson_box_qa",
+						   width="12",
+						   #height="600px",
+						   box(
+								title="Experimental Design Table",
+								id="interior_handson_box_qa",
+								width=12,
+								rHandsontableOutput("hot_qa")
+							   )
+							)#endofHandsonFluidRow
+								
+						)
+					),#end of Qualitative Analysis TabPanel
+					
+					tabPanel(#DIA+DDA
+						title="LFQ Intensity Comparative Analysis (DDA-ID+DIA-Quant)",
+						width=12,
+						id="dia_dda_tab_panel",
+						fluidRow(
+							box(
+								#title="Galaxy Job Design and Upload tool",
+								width=12,
+								id="galaxy_job_submitter_box_dia_dda"
+								), #below this goes another rhansdsontable
+						fluidRow(
+						   title="rhandson_box",
+						   id="handson_box_dia_dda",
+						   width="12",
+						   #height="600px",
+						   box(
+								title="Experimental Design Table",
+								id="interior_handson_box_dia_dda",
+								width=12,
+								
+								rHandsontableOutput("hot_dia_dda")
+							   )
+							)#endofHandsonFluidRow
+								
+						)
+					),#end of DIA+DDA Analysis TabPanel
 
+					tabPanel(#TMT Analysis tabPanel
+						title="TMT Analysis",
+						width=12,
+						id="tmt_tab_panel",
+						fluidRow(
+							box(
+								#title="Galaxy Job Design and Upload tool",
+								width=12,
+								id="galaxy_job_submitter_box_tmt"
+								), #below this goes another rhansdsontable
+						fluidRow(
+						   title="rhandson_box",
+						   id="handson_box_tmt",
+						   width="12",
+						   #height="600px",
+						   box(
+								title="Experimental Design Table",
+								id="interior_handson_box_tmt",
+								width=12,
+								
+								rHandsontableOutput("hot_tmt")
+							   )
+							)#endofHandsonFluidRow
+								
+						)
+					)#end of TMT Analysis
+				)#end of tab Box
         ),
         ####################################################################### /Galaxy Upload tool server side code v.0.1.5
         tabItem(tabName = "galaxy_history_browser",
@@ -2899,6 +2993,25 @@ server <- function(input, output, session) {
     if (!is.null(DF))
       rhandsontable(DF, useTypes = TRUE, stretchH = "all",overflow='visible')
   })
+
+  output$hot_qa <- renderRHandsontable({
+    DF <- values[["DF"]]
+    if (!is.null(DF))
+      rhandsontable(DF, useTypes = TRUE, stretchH = "all",overflow='visible')
+  })
+
+    output$hot_dia_dda <- renderRHandsontable({
+    DF <- values[["DF"]]
+    if (!is.null(DF))
+      rhandsontable(DF, useTypes = TRUE, stretchH = "all",overflow='visible')
+  })
+
+  output$hot_tmt <- renderRHandsontable({
+    DF <- values[["DF"]]
+    if (!is.null(DF))
+      rhandsontable(DF, useTypes = TRUE, stretchH = "all",overflow='visible')
+  })
+
   
   ## Save 
   observeEvent(input$save, {
