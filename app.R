@@ -1,5 +1,5 @@
 # MilkyWay
-# version: 0.3.6a
+# version: 0.3.6b
 # Author: Hee Jong Kim, William Barshop
 
 #library(org.Hs.eg.db)
@@ -72,7 +72,7 @@ server <- function(input, output, session) {
           Username <- isolate(input$userName)
           Password <- isolate(input$passwd)
           if (length(Username) > 0 & length(Password) > 0) {
-            galaxy_con <- GET("http://192.168.2.102/api/authenticate/baseauth", authenticate(Username, Password))
+            galaxy_con <- GET("http://127.0.0.1/api/authenticate/baseauth", authenticate(Username, Password))
             if (status_code(galaxy_con) == 200) {
               USER$Logged <- TRUE
               USER$api_key <- content(galaxy_con)$api_key
@@ -932,7 +932,7 @@ server <- function(input, output, session) {
   observe({
     if (USER$api_key != ""){
       gx_init(USER$api_key,
-              GALAXY_URL='http://192.168.2.102/',
+              GALAXY_URL='http://127.0.0.1/',
               HISTORY_ID = "")
       history <- gx_list_histories()
       history <- cbind(history_index = rownames(history), history)
@@ -2605,17 +2605,19 @@ server <- function(input, output, session) {
   ###### Galaxy upload global
   options(shiny.maxRequestSize=50000*1024^2)
   
-  galaxy_address<-'192.168.2.102'
+  galaxy_address<-'127.0.0.1'
   galaxy_API_key<-reactive({USER$api_key})
   
   fileName= c("example-file-1.raw","example-file-2-A.raw","example-file-2-B.raw",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA)
   bioReplicate = c(1, 2, 2,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA) 
-  displayName = c("Example 1", "Example 2A", "Example 2B",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA)
-  fractionGroupString = c("example-file-1","example-file-2-A","example-file-2-B",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA)
+  #displayName = c("Example 1", "Example 2A", "Example 2B",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA)
+  #fractionGroupString = c("example-file-1","example-file-2-A","example-file-2-B",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA)
   bioConditionName = c("Control", "YFG-KO", "YFG-KO",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA)
   controlBool = c(TRUE, FALSE, FALSE,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA) 
-  DF = data.frame(fileName,bioReplicate,displayName,bioConditionName,controlBool,fractionGroupString)#, s, b)
-  colnames(DF)<-c("File Name","BioReplicate int","Display Name","Condition","Control","FractionGroup String")
+  #DF = data.frame(fileName,bioReplicate,displayName,bioConditionName,controlBool,fractionGroupString)
+  DF = data.frame(fileName,bioReplicate,bioConditionName,controlBool)
+  #colnames(DF)<-c("File Name","BioReplicate int","Display Name","Condition","Control","FractionGroup String")
+  colnames(DF)<-c("File Name","BioReplicate int","Condition","Control")
   ###### /Galaxy upload global
   
   values <- reactiveValues()
@@ -2762,13 +2764,15 @@ server <- function(input, output, session) {
       fileName<-unlist(strsplit(fileName, ".(?!.*\\.)", perl = TRUE))
       fileName<-fileName[fileName!=""]
       bioReplicate = integer(length(fileName))
-      displayName<-paste("Example ",1:length(fileName),sep="")
-      fractionGroupString = fileName
+      #displayName<-paste("Example ",1:length(fileName),sep="")
+      #fractionGroupString = fileName
       bioConditionName <- rep("",times=length(fileName))
       #bioConditionName <- paste(" ", c[1,] "with", c[2,])
       controlBool <- rep(FALSE,times=length(fileName))
-      DF = data.frame(fileName,bioReplicate,displayName,bioConditionName,controlBool,fractionGroupString,stringsAsFactors = FALSE)
-      colnames(DF)<-c("File Name","BioReplicate int","Display Name","Condition","Control","FractionGroup String")
+      #DF = data.frame(fileName,bioReplicate,displayName,bioConditionName,controlBool,fractionGroupString,stringsAsFactors = FALSE)
+	  DF = data.frame(fileName,bioReplicate,bioConditionName,controlBool,stringsAsFactors = FALSE)
+      #colnames(DF)<-c("File Name","BioReplicate int","Display Name","Condition","Control","FractionGroup String")
+	  colnames(DF)<-c("File Name","BioReplicate int","Condition","Control")
       values[["DF"]]<-DF
     }
   })
@@ -2909,9 +2913,11 @@ server <- function(input, output, session) {
     
     for (i in 1:length(finalDF[,'File Name'])){
       if(finalDF[i,'Control']){
-        write(paste(finalDF[i,'File Name'],finalDF[i,'FractionGroup String'],finalDF[i,'Condition'],"C",finalDF[i,'BioReplicate int'],sep="___"),design_file,sep="\n")
+        #write(paste(finalDF[i,'File Name'],finalDF[i,'FractionGroup String'],finalDF[i,'Condition'],"C",finalDF[i,'BioReplicate int'],sep="___"),design_file,sep="\n")
+		write(paste(finalDF[i,'File Name'],finalDF[i,'File Name'],finalDF[i,'Condition'],"C",finalDF[i,'BioReplicate int'],sep="___"),design_file,sep="\n")
       }else{
-        write(paste(finalDF[i,'File Name'],finalDF[i,'FractionGroup String'],finalDF[i,'Condition'],"T",finalDF[i,'BioReplicate int'],sep="___"),design_file,sep="\n")
+        #write(paste(finalDF[i,'File Name'],finalDF[i,'FractionGroup String'],finalDF[i,'Condition'],"T",finalDF[i,'BioReplicate int'],sep="___"),design_file,sep="\n")
+		write(paste(finalDF[i,'File Name'],finalDF[i,'File Name'],finalDF[i,'Condition'],"T",finalDF[i,'BioReplicate int'],sep="___"),design_file,sep="\n")
       }
     }
     close(design_file)
