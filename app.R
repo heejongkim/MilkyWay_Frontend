@@ -1,5 +1,5 @@
 # MilkyWay
-# version: 0.3.4
+# version: 0.3.6d
 # Author: Hee Jong Kim, William Barshop
 
 #library(org.Hs.eg.db)
@@ -336,51 +336,163 @@ server <- function(input, output, session) {
       tabItems(
         ####################################################################### Galaxy Upload tool server side code v.0.1.5
         tabItem(tabName = "galaxy_job_submitter",
-                fluidRow(
-                  fluidRow(
-                    h4("1. Choose an Experiment Name and provide required annotations:"),
-                    textInput("historyName","Experiment Name:"),
-                    wellPanel(h4("Enter full PI names below:"),
-                              splitLayout(        inputPanel(textInput("pifirstName","PI First Name (Full):")),#,
-                                                  #helpText("e.g. \"James\"")),
-                                                  inputPanel(textInput("pilastName","PI Last Name (Full):"))#,
-                                                  #helpText("e.g. \"Wohlschlegel\""))
-                              )
-                    ),
-                    textInput("sampleContactName","Collaboration Contact Name:"),
-                    helpText("e.g. \"Hee Jong Kim\" or \"Buck Strickland\" - This is usually the person who generated the biological material.")
-                  ),
-                  conditionalPanel(
-                    condition = "input.historyName.length > 0 && input.pilastName.length > 0 && input.pifirstName.length > 0 && input.sampleContactName.length > 0",
-                    #h3("2. Upload files:"),
-                    h4("2. Upload protein FASTA database:"),
-                    helpText("Target sequences only!"),
-                    fileInput('fastafile','Select FASTA file',accept=c(".fasta",".FASTA")),
-                    conditionalPanel(
-                      condition = "output.fastafileReceived",
-                      h4("3. Upload empty Skyline file:"),
-                      helpText("File should be set up for the desired analysis, modifications, and acquisition parameters."),
-                      fileInput('skylinefile','Select Skyline file', accept=c(".sky"))
-                    ),
-                    conditionalPanel(
-                      condition = "output.skylinefileReceived",
-                      h4("4. Upload mass spec data:"),
-                      helpText("mzML files should be zlib compressed and centroided"),
-                      fileInput('files', 'Choose raw/mzML files', accept=c('.raw','.mzML','.mzml'),multiple=TRUE)
-                    ),
-                    verbatimTextOutput('uploadedFASTA'),
-                    verbatimTextOutput('uploadedSkyline'),
-                    verbatimTextOutput('uploaded')
-                  ),
-                  conditionalPanel(condition="output.datafilesReceived",
-                                   wellPanel(
-                                     h4("5. Edit the table below, and click here to send\nthe experimental design to Galaxy"),
-                                     #h3("Save"), 
-                                     actionButton("save", "Save table")
-                                   )
-                  ), 
-                  rHandsontableOutput("hot")
-                )
+				tabBox(
+					title="Galaxy Job Design and Upload tool",
+					width=12,
+					id="galaxy_upload_tabbox",
+					
+					tabPanel(#LFQ Comparison TabPanel
+						title="LFQ Intensity Comparative Analysis (DIA or DDA)",
+						width=12,
+						id="lfq_tab_panel",
+						fluidRow(
+							  box(
+							  #title="Galaxy Job Design and Upload tool",
+							  width=12,
+							  id="galaxy_job_submitter_box_lfq",
+
+
+							conditionalPanel(
+							condition="!output.fastafileReceived",
+							h2("1. Choose an Experiment Name and provide required annotations:"),
+							textInput("historyName","Experiment Name:"),
+							wellPanel(h4("Enter full PI names below:"),
+									  splitLayout(        inputPanel(textInput("pifirstName","PI First Name (Full):")),#,
+														  #helpText("e.g. \"James\"")),
+														  inputPanel(textInput("pilastName","PI Last Name (Full):"))#,
+														  #helpText("e.g. \"Wohlschlegel\""))
+									  )
+							),
+							textInput("sampleContactName","Collaboration Contact Name:"),
+							helpText("e.g. \"Hee Jong Kim\" or \"Buck Strickland\" - This is usually the person who generated the biological material.")
+							),
+						  conditionalPanel(
+							condition = "input.historyName.length > 0 && input.pilastName.length > 0 && input.pifirstName.length > 0 && input.sampleContactName.length > 0 && !output.fastafileReceived",
+							#h3("2. Upload files:"),
+							h2("2. Upload protein FASTA database:"),
+							helpText("Target sequences only!"),
+							fileInput('fastafile','Select FASTA file',accept=c(".fasta",".FASTA"))
+							),
+							conditionalPanel(
+							  condition = "output.fastafileReceived && !output.skylinefileReceived",
+							  h2("3. Upload empty Skyline file:"),
+							  helpText("File should be set up for the desired analysis, modifications, and acquisition parameters."),
+							  fileInput('skylinefile','Select Skyline file', accept=c(".sky"))
+							),
+							conditionalPanel(
+							  condition = "output.skylinefileReceived && !output.datafilesReceived",
+							  h2("4. Upload mass spec data:"),
+							  helpText("mzML files should be zlib compressed and centroided"),
+							  fileInput('files', 'Choose raw/mzML files', accept=c('.raw','.mzML','.mzml'),multiple=TRUE)
+							),
+							verbatimTextOutput('uploadedFASTA'),
+							verbatimTextOutput('uploadedSkyline'),
+							verbatimTextOutput('uploaded'),
+						  
+						  conditionalPanel(condition="output.datafilesReceived",
+										   wellPanel(
+											 h2("5. Edit the table below, and click the save button below to send\nthe experimental design to Galaxy"),
+											 #h3("Save"), 
+											 actionButton("save", "Save table")
+										   )
+										)
+							)#end of the box
+						),
+						fluidRow(
+						   title="rhandson_box_lfq",
+						   id="handson_box_lfq",
+						   width="12",
+						   #height="600px",
+						   box(
+								title="Experimental Design Table",
+								id="interior_handson_box_lfq",
+								width=12,
+								
+								rHandsontableOutput("hot")
+						   )
+						)
+					),#end of LFQ tabPanel
+
+					tabPanel(#Qualitative Analysis tabPanel
+						title="Qualitative Analysis",
+						width=12,
+						id="qa_tab_panel",
+						fluidRow(
+							box(
+								#title="Galaxy Job Design and Upload tool",
+								width=12,
+								id="galaxy_job_submitter_box_qa"
+								), #below this goes another rhansdsontable
+						fluidRow(
+						   title="rhandson_box_qa",
+						   id="handson_box_qa",
+						   width="12",
+						   #height="600px",
+						   box(
+								title="Experimental Design Table",
+								id="interior_handson_box_qa",
+								width=12,
+								rHandsontableOutput("hot_qa")
+							   )
+							)#endofHandsonFluidRow
+								
+						)
+					),#end of Qualitative Analysis TabPanel
+					
+					tabPanel(#DIA+DDA
+						title="LFQ Intensity Comparative Analysis (DDA-ID+DIA-Quant)",
+						width=12,
+						id="dia_dda_tab_panel",
+						fluidRow(
+							box(
+								#title="Galaxy Job Design and Upload tool",
+								width=12,
+								id="galaxy_job_submitter_box_dia_dda"
+								), #below this goes another rhansdsontable
+						fluidRow(
+						   title="rhandson_box",
+						   id="handson_box_dia_dda",
+						   width="12",
+						   #height="600px",
+						   box(
+								title="Experimental Design Table",
+								id="interior_handson_box_dia_dda",
+								width=12,
+								
+								rHandsontableOutput("hot_dia_dda")
+							   )
+							)#endofHandsonFluidRow
+								
+						)
+					),#end of DIA+DDA Analysis TabPanel
+
+					tabPanel(#TMT Analysis tabPanel
+						title="TMT Analysis",
+						width=12,
+						id="tmt_tab_panel",
+						fluidRow(
+							box(
+								#title="Galaxy Job Design and Upload tool",
+								width=12,
+								id="galaxy_job_submitter_box_tmt"
+								), #below this goes another rhansdsontable
+						fluidRow(
+						   title="rhandson_box",
+						   id="handson_box_tmt",
+						   width="12",
+						   #height="600px",
+						   box(
+								title="Experimental Design Table",
+								id="interior_handson_box_tmt",
+								width=12,
+								
+								rHandsontableOutput("hot_tmt")
+							   )
+							)#endofHandsonFluidRow
+								
+						)
+					)#end of TMT Analysis
+				)#end of tab Box
         ),
         ####################################################################### /Galaxy Upload tool server side code v.0.1.5
         tabItem(tabName = "galaxy_history_browser",
@@ -1070,7 +1182,7 @@ server <- function(input, output, session) {
         e[["protein_saint_table"]]$description <- as.character(e[["protein_saint_table"]]$description)
       }
       
-      e[["exp_design_for_pViz"]] <- e[["experiment_design"]][,c("Original File Name", "Biological Condition")]
+      e[["exp_design_for_pViz"]] <- e[["qual_experiment_design"]][,c("Original File Name", "Biological Condition")]
       colnames(e[["exp_design_for_pViz"]])[colnames(e[["exp_design_for_pViz"]]) == 'Original File Name'] <- "category"
       incProgress(23/23)
     })
@@ -1081,7 +1193,7 @@ server <- function(input, output, session) {
   job_history <- eventReactive(input$loading, {e[["job_history"]]})
   fasta_df <- eventReactive(input$loading, {e[["fasta_df"]]})
   protein_saint_table <- eventReactive(input$loading, {e[["protein_saint_table"]]})
-  experiment_design_df <- eventReactive(input$loading, {e[["experiment_design"]]})
+  qual_experiment_design_df <- eventReactive(input$loading, {e[["qual_experiment_design"]]})
   exp_design_for_pViz <- eventReactive(input$loading, {e[["exp_design_for_pViz"]]})
   nsaf_df <- eventReactive(input$loading, {e[["nsaf_table"]]})
   spc_df <- eventReactive(input$loading, {e[["spc_table"]]})
@@ -1097,6 +1209,7 @@ server <- function(input, output, session) {
   outputOptions(output, 'analysis_selector', suspendWhenHidden = FALSE)
   
   ## ONLY LFQ LOADING
+  quant_experiment_design_df <- eventReactive(input$loading, {e[["quant_experiment_design"]]})
   MSstats_comparison_df <- eventReactive(input$loading, if(analysis_type() == "lfq"){e[["MSstats_comparison_df"]]})
   MSstats_quant_df <- eventReactive(input$loading, if(analysis_type() == "lfq"){e[["quantification_csv"]]})
   MSstats_condition_plot_df <- eventReactive(input$loading, if(analysis_type() == "lfq"){e[["condition_plot_csv"]]})
@@ -1137,7 +1250,7 @@ server <- function(input, output, session) {
   ### Experiment Design Diagram
   exp_diagram_process <- reactive({
     withProgress(message = "Drawing Experiment Diagram", value = 0, {
-      graph <- exp_diagram(experiment_design_df())
+      graph <- exp_diagram(qual_experiment_design_df())
     })
   })
   # For LFQ
@@ -1157,7 +1270,7 @@ server <- function(input, output, session) {
   ### Delta Mass Plot
   ppm_hist_process <- reactive({
     withProgress(message = "Drawing Delta Mass Plot", value = 0, {
-      exp_design <- experiment_design_df()
+      exp_design <- qual_experiment_design_df()
       if(analysis_type() == "lfq"){q_value <- input$overview_qvalue_cutoff_lfq}
       if(analysis_type() == "qual"){q_value <- input$overview_qvalue_cutoff_qual}
       # Sort the table
@@ -1194,7 +1307,7 @@ server <- function(input, output, session) {
   ### PSM count Barplot
   psm_count_plot_process <- reactive({
     withProgress(message = "Drawing PSM Count Plot", value = 0, {
-      exp_design <- experiment_design_df()
+      exp_design <- qual_experiment_design_df()
       if(analysis_type() == "lfq"){q_value <- input$overview_qvalue_cutoff_lfq}
       if(analysis_type() == "qual"){q_value <- input$overview_qvalue_cutoff_qual}
       # Sort the table
@@ -1231,7 +1344,7 @@ server <- function(input, output, session) {
   ### Experiment Design Table
   # For LFQ
   output$experimental_design_table_lfq <- renderDataTable(
-    arrange.vars(experiment_design_df(), c("Test or Control"=1,
+    arrange.vars(qual_experiment_design_df(), c("Test or Control"=1,
                                            "Biological Condition"=2,
                                            "BioReplicate"=3,
                                            "Fractionation Group Name"=4,
@@ -1244,7 +1357,7 @@ server <- function(input, output, session) {
   )
   # For Qual
   output$experimental_design_table_qual <- renderDataTable(
-    arrange.vars(experiment_design_df(), c("Test or Control"=1,
+    arrange.vars(qual_experiment_design_df(), c("Test or Control"=1,
                                            "Biological Condition"=2,
                                            "BioReplicate"=3,
                                            "Fractionation Group Name"=4,
@@ -1385,7 +1498,7 @@ server <- function(input, output, session) {
   ### Unnormalized Peptide Area Distributions violin_plot_lfq
   output$unnorm_peptide_dist_violin_plot_lfq <- renderPlot({
     df <- msstats_skyline_input_df()[which(msstats_skyline_input_df()$annotation_QValue <= input$unnorm_peptide_dist_violin_plot_mprophet_qvalue),c("FileName", "Area", "annotation_QValue")]
-    exp_df <- experiment_design_df()
+    exp_df <- quant_experiment_design_df()
     # Add filename with extension
     exp_df$FilenameWithExt <- paste(exp_df$`Original File Name`, 
                                     tools::file_ext(levels(df$FileName)[1]), 
@@ -2060,7 +2173,7 @@ server <- function(input, output, session) {
     melt_spc <- melt(spc_df(), id="ProteinID")
     colnames(melt_spc)[colnames(melt_spc)=="variable"] <- "Original File Name"
     colnames(melt_spc)[colnames(melt_spc)=="value"] <- "SpC"
-    melt_spc <- merge(x=melt_spc, y=experiment_design_df()[, c("Original File Name", "Biological Condition")], by="Original File Name", all=TRUE)
+    melt_spc <- merge(x=melt_spc, y=qual_experiment_design_df()[, c("Original File Name", "Biological Condition")], by="Original File Name", all=TRUE)
     melt_spc$`Original File Name` <- NULL
     colnames(melt_spc)[colnames(melt_spc)=="Biological Condition"] <- "Condition"
     melt_spc <- aggregate(melt_spc[,"SpC"], list(melt_spc$ProteinID, melt_spc$Condition), mean)
@@ -2072,7 +2185,7 @@ server <- function(input, output, session) {
     spc_saint_msstats$Var.5 <- NULL
     spc_saint_msstats$description <- NULL
     # DSR SpC calculation
-    test_control_map <- unique(experiment_design_df()[,c("Biological Condition", "Test or Control")])
+    test_control_map <- unique(qual_experiment_design_df()[,c("Biological Condition", "Test or Control")])
     colnames(test_control_map) <- c("Condition", "TestControl")
     TestCondition <- as.character(test_control_map[test_control_map$TestControl=="T", "Condition"])
     ControlCondition <- as.character(test_control_map[test_control_map$TestControl=="C", "Condition"])
@@ -2157,7 +2270,7 @@ server <- function(input, output, session) {
       complex_heatmap(input$unidirectional,
                       input$quantCentering,
                       input$heatmap_pvalue_cutoff,
-                      experiment_design_df(),
+                      quant_experiment_design_df(),
                       MSstats_comparison_df(),
                       MSstats_quant_df(),
                       input$manual_k)
@@ -2469,7 +2582,7 @@ server <- function(input, output, session) {
     }
     ## Exp mapping with filename
     df <- msstats_skyline_input_df()[which(msstats_skyline_input_df()$annotation_QValue <= input$unnorm_peptide_dist_violin_plot_mprophet_qvalue),c("FileName", "Area", "annotation_QValue")]
-    exp_df <- experiment_design_df()
+    exp_df <- quant_experiment_design_df()
     # Add filename with extension
     exp_df$FilenameWithExt <- paste(exp_df$`Original File Name`, 
                                     tools::file_ext(levels(splited_each_chrom$FileName)[1]), 
@@ -2523,7 +2636,7 @@ server <- function(input, output, session) {
                                                                minPvalueFilter = input$excelPvalueHeatMap,
                                                                cluster_k = input$excelManual_k,
                                                                # data from RData
-                                                               experiment_design = experiment_design_df(),
+                                                               experiment_design = qual_experiment_design_df(),
                                                                comparison_csv = MSstats_comparison_df(),
                                                                fasta_df = fasta_df(),
                                                                saint_table = protein_saint_table(),
@@ -2558,7 +2671,7 @@ server <- function(input, output, session) {
                                                                peptide_q_value = input$excelPeptideQvalue,
                                                                protein_q_value = input$excelProteinQvalue,
                                                                # data from RData
-                                                               experiment_design = experiment_design_df(),
+                                                               experiment_design = qual_experiment_design_df(),
                                                                fasta_df = fasta_df(),
                                                                saint_table = protein_saint_table(),
                                                                spc_table = spc_df(),
@@ -2591,12 +2704,14 @@ server <- function(input, output, session) {
   
   fileName= c("example-file-1.raw","example-file-2-A.raw","example-file-2-B.raw",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA)
   bioReplicate = c(1, 2, 2,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA) 
-  displayName = c("Example 1", "Example 2A", "Example 2B",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA)
-  fractionGroupString = c("example-file-1","example-file-2-A","example-file-2-B",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA)
+  #displayName = c("Example 1", "Example 2A", "Example 2B",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA)
+  #fractionGroupString = c("example-file-1","example-file-2-A","example-file-2-B",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA)
   bioConditionName = c("Control", "YFG-KO", "YFG-KO",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA)
   controlBool = c(TRUE, FALSE, FALSE,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA) 
-  DF = data.frame(fileName,bioReplicate,displayName,bioConditionName,controlBool,fractionGroupString)#, s, b)
-  colnames(DF)<-c("File Name","BioReplicate int","Display Name","Condition","Control","FractionGroup String")
+  #DF = data.frame(fileName,bioReplicate,displayName,bioConditionName,controlBool,fractionGroupString)
+  DF = data.frame(fileName,bioReplicate,bioConditionName,controlBool)
+  #colnames(DF)<-c("File Name","BioReplicate int","Display Name","Condition","Control","FractionGroup String")
+  colnames(DF)<-c("File Name","BioReplicate int","Condition","Control")
   ###### /Galaxy upload global
   
   values <- reactiveValues()
@@ -2743,13 +2858,15 @@ server <- function(input, output, session) {
       fileName<-unlist(strsplit(fileName, ".(?!.*\\.)", perl = TRUE))
       fileName<-fileName[fileName!=""]
       bioReplicate = integer(length(fileName))
-      displayName<-paste("Example ",1:length(fileName),sep="")
-      fractionGroupString = fileName
+      #displayName<-paste("Example ",1:length(fileName),sep="")
+      #fractionGroupString = fileName
       bioConditionName <- rep("",times=length(fileName))
       #bioConditionName <- paste(" ", c[1,] "with", c[2,])
       controlBool <- rep(FALSE,times=length(fileName))
-      DF = data.frame(fileName,bioReplicate,displayName,bioConditionName,controlBool,fractionGroupString,stringsAsFactors = FALSE)
-      colnames(DF)<-c("File Name","BioReplicate int","Display Name","Condition","Control","FractionGroup String")
+      #DF = data.frame(fileName,bioReplicate,displayName,bioConditionName,controlBool,fractionGroupString,stringsAsFactors = FALSE)
+	  DF = data.frame(fileName,bioReplicate,bioConditionName,controlBool,stringsAsFactors = FALSE)
+      #colnames(DF)<-c("File Name","BioReplicate int","Display Name","Condition","Control","FractionGroup String")
+	  colnames(DF)<-c("File Name","BioReplicate int","Condition","Control")
       values[["DF"]]<-DF
     }
   })
@@ -2876,6 +2993,25 @@ server <- function(input, output, session) {
     if (!is.null(DF))
       rhandsontable(DF, useTypes = TRUE, stretchH = "all",overflow='visible')
   })
+
+  output$hot_qa <- renderRHandsontable({
+    DF <- values[["DF"]]
+    if (!is.null(DF))
+      rhandsontable(DF, useTypes = TRUE, stretchH = "all",overflow='visible')
+  })
+
+    output$hot_dia_dda <- renderRHandsontable({
+    DF <- values[["DF"]]
+    if (!is.null(DF))
+      rhandsontable(DF, useTypes = TRUE, stretchH = "all",overflow='visible')
+  })
+
+  output$hot_tmt <- renderRHandsontable({
+    DF <- values[["DF"]]
+    if (!is.null(DF))
+      rhandsontable(DF, useTypes = TRUE, stretchH = "all",overflow='visible')
+  })
+
   
   ## Save 
   observeEvent(input$save, {
@@ -2890,9 +3026,11 @@ server <- function(input, output, session) {
     
     for (i in 1:length(finalDF[,'File Name'])){
       if(finalDF[i,'Control']){
-        write(paste(finalDF[i,'File Name'],finalDF[i,'FractionGroup String'],finalDF[i,'Condition'],"C",finalDF[i,'BioReplicate int'],sep="___"),design_file,sep="\n")
+        #write(paste(finalDF[i,'File Name'],finalDF[i,'FractionGroup String'],finalDF[i,'Condition'],"C",finalDF[i,'BioReplicate int'],sep="___"),design_file,sep="\n")
+		write(paste(finalDF[i,'File Name'],finalDF[i,'File Name'],finalDF[i,'Condition'],"C",finalDF[i,'BioReplicate int'],sep="___"),design_file,sep="\n")
       }else{
-        write(paste(finalDF[i,'File Name'],finalDF[i,'FractionGroup String'],finalDF[i,'Condition'],"T",finalDF[i,'BioReplicate int'],sep="___"),design_file,sep="\n")
+        #write(paste(finalDF[i,'File Name'],finalDF[i,'FractionGroup String'],finalDF[i,'Condition'],"T",finalDF[i,'BioReplicate int'],sep="___"),design_file,sep="\n")
+		write(paste(finalDF[i,'File Name'],finalDF[i,'File Name'],finalDF[i,'Condition'],"T",finalDF[i,'BioReplicate int'],sep="___"),design_file,sep="\n")
       }
     }
     close(design_file)
