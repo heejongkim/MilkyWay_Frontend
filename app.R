@@ -1,5 +1,5 @@
 # MilkyWay
-# version: 0.3.6d
+# version: 0.3.7a
 # Author: Hee Jong Kim, William Barshop
 
 #library(org.Hs.eg.db)
@@ -72,7 +72,7 @@ server <- function(input, output, session) {
           Username <- isolate(input$userName)
           Password <- isolate(input$passwd)
           if (length(Username) > 0 & length(Password) > 0) {
-            galaxy_con <- GET("http://192.168.2.102/api/authenticate/baseauth", authenticate(Username, Password))
+            galaxy_con <- GET("http://127.0.0.1/api/authenticate/baseauth", authenticate(Username, Password))
             if (status_code(galaxy_con) == 200) {
               USER$Logged <- TRUE
               USER$api_key <- content(galaxy_con)$api_key
@@ -342,7 +342,7 @@ server <- function(input, output, session) {
 					id="galaxy_upload_tabbox",
 					
 					tabPanel(#LFQ Comparison TabPanel
-						title="LFQ Intensity Comparative Analysis (DIA or DDA)",
+						title="LFQ Intensity Comparison Analysis (DIA or DDA)",
 						width=12,
 						id="lfq_tab_panel",
 						fluidRow(
@@ -380,8 +380,16 @@ server <- function(input, output, session) {
 							  fileInput('skylinefile','Select Skyline file', accept=c(".sky"))
 							),
 							conditionalPanel(
+							  condition = "output.skylinefileReceived && !output.diawindowfileReceived && !input.DDAcheck",
+							  h2("4. If DIA, upload DIAUmpire window definitions, otherwise check DDA box:"),
+							  helpText("Window definitions must be saved without quotes or commas, etc, in a tsv or csv file with two columns (start and end m/z values)"),
+							  fileInput('diawindowfile','Select DIA Window file', accept=c(".csv",".tsv",".txt")),
+							  checkboxInput('DDAcheck','DDA File Upload: SKIP',value=FALSE)
+							),
+
+							conditionalPanel(
 							  condition = "output.skylinefileReceived && !output.datafilesReceived",
-							  h2("4. Upload mass spec data:"),
+							  h2("5. Upload mass spec data:"),
 							  helpText("mzML files should be zlib compressed and centroided"),
 							  fileInput('files', 'Choose raw/mzML files', accept=c('.raw','.mzML','.mzml'),multiple=TRUE)
 							),
@@ -391,7 +399,7 @@ server <- function(input, output, session) {
 						  
 						  conditionalPanel(condition="output.datafilesReceived",
 										   wellPanel(
-											 h2("5. Edit the table below, and click the save button below to send\nthe experimental design to Galaxy"),
+											 h2("6. Edit the table below, and click the save button below to send\nthe experimental design to Galaxy"),
 											 #h3("Save"), 
 											 actionButton("save", "Save table")
 										   )
@@ -1026,7 +1034,7 @@ server <- function(input, output, session) {
   observe({
     if (USER$api_key != ""){
       gx_init(USER$api_key,
-              GALAXY_URL='http://192.168.2.102/',
+              GALAXY_URL='http://127.0.0.1/',
               HISTORY_ID = "")
       history <- gx_list_histories()
       history <- cbind(history_index = rownames(history), history)
@@ -2699,7 +2707,7 @@ server <- function(input, output, session) {
   ###### Galaxy upload global
   options(shiny.maxRequestSize=50000*1024^2)
   
-  galaxy_address<-'192.168.2.102'
+  galaxy_address<-'127.0.0.1'
   galaxy_API_key<-reactive({USER$api_key})
   
   fileName= c("example-file-1.raw","example-file-2-A.raw","example-file-2-B.raw",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA)
@@ -2716,6 +2724,11 @@ server <- function(input, output, session) {
   
   values <- reactiveValues()
   
+  output$diawindowfileReceived <-reactive({
+    return(!is.null(input$diawindowfile))
+  })
+  outputOptions(output, 'diawindowfileReceived', suspendWhenHidden=FALSE)
+
   output$skylinefileReceived <-reactive({
     return(!is.null(input$skylinefile))
   })
