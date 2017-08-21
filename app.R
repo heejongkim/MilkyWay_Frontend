@@ -2911,7 +2911,7 @@ server <- function(input, output, session) {
     else{
       print("inFiles WAS NOT null...")
     }
-    if(input$historyName==""){
+    if(input$historyNameDIADDA==""){
       print("We will upload the data into the most recent history used...")
     } else {
       history<-input$historyNameDIADDA
@@ -2988,7 +2988,7 @@ server <- function(input, output, session) {
     else{
       print("inFiles WAS NOT null...")
     }
-    if(input$historyName==""){
+    if(input$historyNameDIADDA==""){
       print("We will upload the data into the most recent history used...")
     } else {
       history<-input$historyNameDIADDA
