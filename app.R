@@ -393,17 +393,21 @@ server <- function(input, output, session) {
 							  helpText("mzML files should be zlib compressed and centroided"),
 							  fileInput('files', 'Choose raw/mzML files', accept=c('.raw','.mzML','.mzml'),multiple=TRUE)
 							),
-							verbatimTextOutput('uploadedFASTA'),
-							verbatimTextOutput('uploadedSkyline'),
-							verbatimTextOutput('uploaded'),
-						  
 						  conditionalPanel(condition="output.datafilesReceived",
 										   wellPanel(
 											 h2("6. Edit the table below, and click the save button below to send\nthe experimental design to Galaxy"),
 											 #h3("Save"), 
 											 actionButton("save", "Save table")
 										   )
-										)
+										),
+                                                        conditionalPanel(
+								condition=FALSE,
+								verbatimTextOutput('uploadedFASTA'),
+								verbatimTextOutput('uploadedSkyline'),
+								verbatimTextOutput('uploadedDIAwindowfile'),
+								verbatimTextOutput('uploaded')
+						        )
+
 							)#end of the box
 						),
 						fluidRow(
@@ -2955,7 +2959,7 @@ server <- function(input, output, session) {
       return(NULL)
     }
     else{
-      print("inFiles WAS NOT null... Uploading FASTA!")
+      print("inFiles WAS NOT null... Uploading Skyline File!")
     }
     
     python_file_tmp<-file(tempfile(pattern = "file", tmpdir = tempdir()))
@@ -3000,6 +3004,61 @@ server <- function(input, output, session) {
     print("We're done uploading the Skyline file.")
     
   })
+
+  #Handle DIAUmpire Window file upload...
+  output$uploadedDIAwindowfile<-renderText({
+    inFiles <- input$diawindowfile
+    history<-input$historyName
+    if(is.null(inFiles)){
+      print("inFiles IS NULL!!!")
+      return(NULL)
+    }
+    else{
+      print("inFiles WAS NOT null... Uploading DIAUmpire Window File!")
+    }
+    
+    python_file_tmp<-file(tempfile(pattern = "file", tmpdir = tempdir()))
+    python_file_path<-summary(python_file_tmp)$description
+    close(python_file_tmp)
+    python_file<-file(python_file_path,"w")
+    print(python_file_path)
+    print("that's the python file location for writing the output....")
+    write('from bioblend.galaxy import GalaxyInstance\nimport sys\nimport os\n',python_file,append=TRUE)
+    
+    write(paste0("gi = GalaxyInstance(\"",galaxy_address,"\", key=\'",galaxy_API_key(),"\')\n"),python_file,append=TRUE)
+    write("histories=gi.histories.get_histories()\nhistory_id=0\nfor each_history in histories:\n",python_file,append=TRUE)
+    write(paste0("\tif each_history[u\'name\']==\'",history,"\' and not each_history[u\'deleted\']:\n"),python_file,append=TRUE)
+    write("\t\thistory_id=each_history[u\'id\']\n\t\tbreak\n",python_file,append=TRUE)
+    
+    write("try:\n\tif history_id==0:\n",python_file,append=TRUE)
+    write(paste0("\t\tnew_hist=gi.histories.create_history(name=\'",history,"\')\n"),python_file,append=TRUE)
+    write("\t\thistory_id=new_hist[u\'id\']\n",python_file,append=TRUE)
+    write(paste0("except:\n\tif history_id==0:\n\t\thistory_id=histories[0][u\'id\']\n"),python_file,append=TRUE)
+    
+    
+    write("incoming_files={",python_file,append=TRUE)
+    for(i in 1:length(inFiles[,1])){
+      write(paste0("\'",inFiles[[i,'datapath']],"\':\'",inFiles$name[i],"\'"),python_file,append=TRUE)
+      if(i!=length(inFiles[,1])){
+        write(",",python_file,append=TRUE)
+      }
+      
+    }
+    write("}\n",python_file,append=TRUE)
+    
+    
+    write("for each_path in incoming_files:\n\ttry:\n\t\tos.symlink(each_path,incoming_files[each_path])\n",python_file,append=TRUE)
+    write("\texcept:\n\t\tos.remove(incoming_files[each_path])\n\t\tos.symlink(each_path,incoming_files[each_path])\n",python_file,append=TRUE)
+    
+    write("for each_file in incoming_files.values():\n\tuploaded=gi.tools.upload_file(each_file,history_id)\n",python_file,append=TRUE)
+    
+    close(python_file)
+    python.load(python_file_path)
+    
+    print("We're done uploading the DIA Window file.")
+    
+  })
+
   
   output$hot <- renderRHandsontable({
     DF <- values[["DF"]]
