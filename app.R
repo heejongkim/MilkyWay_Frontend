@@ -462,31 +462,32 @@ server <- function(input, output, session) {
 							  helpText("File should be set up for the desired analysis, modifications, and acquisition parameters."),
 							  fileInput('skylinefileDIADDA','Select Skyline file', accept=c(".sky"))
 							),
-							conditionalPanel(
-							  condition = "output.skylinefileReceivedDIADDA && !output.diawindowfileReceivedDIADDA",
-							  h2("4. If DIA, upload DIAUmpire window definitions, otherwise check DDA box:"),
-							  helpText("Window definitions must be saved without quotes or commas, etc, in a tsv or csv file with two columns (start and end m/z values)"),
-							  fileInput('diawindowfileDIADDA','Select DIA Window file', accept=c(".csv",".tsv",".txt"))
-							),
 
 							conditionalPanel(
-							  condition = "!output.datafilesReceivedDIADDA && (input.DDAcheckDIADDA || output.diawindowfileReceivedDIADDA)",
-							  h2("5. Upload DDA (searchable) mass spec data:"),
+							  condition = "!output.datafilesReceivedDIADDA",
+							  h2("4. Upload DDA (searchable) mass spec data:"),
 							  helpText("mzML files should be zlib compressed and centroided"),
 							  fileInput('filesDIADDA', 'Choose raw/mzML files', accept=c('.raw','.mzML','.mzml'),multiple=TRUE)
 							),
 						  conditionalPanel(condition="output.datafilesReceivedDIADDA",
 										   wellPanel(
-											 h2("6. Edit the table below, and click the save button below to send\nthe experimental design to Galaxy"),
-											 actionButton("saveDIADDA", "Save table")
+											 h2("5. Edit the DDA file table below, and click the save button below to send\nthe experimental design to Galaxy"),
+											 actionButton("saveDIADDA", "Save DDA table")
 										   )
 										),
 							conditionalPanel(
 							  condition = "output.datafilesReceivedDIADDA",
-							  h2("5. Upload DIA (quantitative) mass spec data:"),
+							  h2("6. Upload DIA (quantitative) mass spec data:"),
 							  helpText("mzML files should be zlib compressed and centroided"),
 							  fileInput('filesDIADDA_DIA', 'Choose raw/mzML files', accept=c('.raw','.mzML','.mzml'),multiple=TRUE)
 							),
+						  conditionalPanel(condition="output.datafilesReceivedDIADDA",
+										   wellPanel(
+											 h2("7. Edit the DIA file table below, and click the save button below to send\nthe experimental design to Galaxy"),
+											 actionButton("saveDIADDA_DIA", "Save DIA table")
+										   )
+										),
+
 
                                                         conditionalPanel(
 								condition=FALSE,
@@ -500,16 +501,29 @@ server <- function(input, output, session) {
 							)#end of the box
 						),
 						fluidRow(
-						   title="rhandson_box",
+						   title="DDA Files",
 						   id="handson_box_dia_dda",
 						   width="12",
 						   #height="600px",
 						   box(
-								title="Experimental Design Table",
+								title="DDA Experimental Design Table",
 								id="interior_handson_box_dia_dda",
 								width=12,
 								
 								rHandsontableOutput("hotDIADDA")
+							   )
+							),#endofHandsonFluidRow
+						fluidRow(
+						   title="DIA Files",
+						   id="handson_box_dia_dda_DIA",
+						   width="12",
+						   #height="600px",
+						   box(
+								title="DIA Experimental Design Table",
+								id="interior_handson_box_dia_dda_DIA",
+								width=12,
+								
+								rHandsontableOutput("hotDIADDA_DIA")
 							   )
 							)#endofHandsonFluidRow
 								
@@ -3428,6 +3442,12 @@ server <- function(input, output, session) {
       rhandsontable(DF, useTypes = TRUE, stretchH = "all",overflow='visible')
   })
 
+    output$hotDIADDA_DIA <- renderRHandsontable({
+    DF_DIA <- values[["DF_DIA"]]
+    if (!is.null(DF_DIA))
+      rhandsontable(DF_DIA, useTypes = TRUE, stretchH = "all",overflow='visible')
+  })
+
   output$hot_tmt <- renderRHandsontable({
     DF <- values[["DF"]]
     if (!is.null(DF))
@@ -3487,7 +3507,7 @@ server <- function(input, output, session) {
     
   })
 
-  ## Save LFQ DIA+DDA
+  ## Save LFQ DIA+DDA (DDA)
   observeEvent(input$saveDIADDA, {
     finalDF <- isolate(values[["DF"]])
     history<-input$historyNameDIADDA
@@ -3535,7 +3555,59 @@ server <- function(input, output, session) {
     close(python_file)
     python.load(python_file_path)
     
-    showNotification("The table has been uploaded to Galaxy!")
+    showNotification("The DDA table has been uploaded to Galaxy!")
+    
+  })
+
+  ## Save LFQ DIA+DDA (DIA)
+  observeEvent(input$saveDIADDA_DIA, {
+    finalDF <- isolate(values[["DF_DIA"]])
+    history<-input$historyNameDIADDA
+    #saveRDS(finalDF, file=file.path(outdir, sprintf("%s.rds", outfilename)))
+    design_file_tmp<-file(tempfile(pattern = "Experimental_Design", tmpdir = tempdir()))
+    design_file_path<-summary(design_file_tmp)$description
+    close(design_file_tmp)
+    
+    design_file<-file(design_file_path,"w")
+    
+    for (i in 1:length(finalDF[,'File Name'])){
+      if(finalDF[i,'Control']){
+        #write(paste(finalDF[i,'File Name'],finalDF[i,'FractionGroup String'],finalDF[i,'Condition'],"C",finalDF[i,'BioReplicate int'],sep="___"),design_file,sep="\n")
+		write(paste(finalDF[i,'File Name'],finalDF[i,'File Name'],finalDF[i,'Condition'],"C",finalDF[i,'BioReplicate int'],sep="___"),design_file,sep="\n")
+      }else{
+        #write(paste(finalDF[i,'File Name'],finalDF[i,'FractionGroup String'],finalDF[i,'Condition'],"T",finalDF[i,'BioReplicate int'],sep="___"),design_file,sep="\n")
+		write(paste(finalDF[i,'File Name'],finalDF[i,'File Name'],finalDF[i,'Condition'],"T",finalDF[i,'BioReplicate int'],sep="___"),design_file,sep="\n")
+      }
+    }
+    close(design_file)
+    print(design_file_path)
+    print("above is where the design file was written...")
+    
+    python_file_tmp<-file(tempfile(pattern = "file", tmpdir = tempdir()))
+    python_file_path<-summary(python_file_tmp)$description
+    close(python_file_tmp)
+    python_file<-file(python_file_path,"w")
+    print(python_file_path)
+    print("that's the python file location gor writing the output....")
+    write('from bioblend.galaxy import GalaxyInstance\nimport sys\nimport os\n',python_file,append=TRUE)
+    
+    write(paste0("gi = GalaxyInstance(\"",galaxy_address,"\", key=\'",galaxy_API_key(),"\')\n"),python_file,append=TRUE)
+    #write("history_id=0\n",python_file,append=TRUE)
+    write("histories=gi.histories.get_histories()\nhistory_id=0\nfor each_history in histories:\n",python_file,append=TRUE)
+    write(paste0("\tif each_history[u\'name\']==\'",history,"\' and not each_history[u\'deleted\']:\n"),python_file,append=TRUE)
+    write("\t\thistory_id=each_history[u\'id\']\n\t\tbreak\n",python_file,append=TRUE)
+    
+    write("try:\n\tif history_id==0:\n",python_file,append=TRUE)
+    write(paste0("\t\tnew_hist=gi.histories.create_history(name=\'",history,"\')\n"),python_file,append=TRUE)
+    write("\t\thistory_id=new_hist[u\'id\']\n",python_file,append=TRUE)
+    write(paste0("except:\n\tif history_id==0:\n\t\thistory_id=histories[0][u\'id\']\n"),python_file,append=TRUE)
+    
+    write(paste0("uploaded=gi.tools.upload_file(\"",design_file_path,"\",history_id)\n"),python_file,append=TRUE)
+    
+    close(python_file)
+    python.load(python_file_path)
+    
+    showNotification("The DIA table has been uploaded to Galaxy!")
     
   })
 
