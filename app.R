@@ -334,7 +334,7 @@ server <- function(input, output, session) {
   output$mainbodypanel <- renderUI({
     if(USER$Logged == TRUE){
       tabItems(
-        ####################################################################### Galaxy Upload tool server side code v.0.1.5
+        ####################################################################### Galaxy Upload tool server side code
         tabItem(tabName = "galaxy_job_submitter",
 				tabBox(
 					title="Galaxy Job Design and Upload tool",
@@ -374,13 +374,15 @@ server <- function(input, output, session) {
 							fileInput('fastafile','Select FASTA file',accept=c(".fasta",".FASTA"))
 							),
 							conditionalPanel(
-							  condition = "output.fastafileReceived && !output.skylinefileReceived",
+							  condition = "output.fastafileReceived && !output.skylinefileReceived && !input.QAcheck",
 							  h2("3. Upload empty Skyline file:"),
 							  helpText("File should be set up for the desired analysis, modifications, and acquisition parameters."),
-							  fileInput('skylinefile','Select Skyline file', accept=c(".sky"))
+							  fileInput('skylinefile','Select Skyline file', accept=c(".sky")),
+							  checkboxInput('QAcheck','Identification Analysis Only (No Intensity Analysis)',value=FALSE)
+
 							),
 							conditionalPanel(
-							  condition = "output.skylinefileReceived && !output.diawindowfileReceived && !input.DDAcheck",
+							  condition = "(input.QAcheck || output.skylinefileReceived) && !output.diawindowfileReceived && !input.DDAcheck",
 							  h2("4. If DIA, upload DIAUmpire window definitions, otherwise check DDA box:"),
 							  helpText("Window definitions must be saved without quotes or commas, etc, in a tsv or csv file with two columns (start and end m/z values)"),
 							  fileInput('diawindowfile','Select DIA Window file', accept=c(".csv",".tsv",".txt")),
@@ -425,32 +427,6 @@ server <- function(input, output, session) {
 						)
 					),#end of LFQ tabPanel
 
-					tabPanel(#Qualitative Analysis tabPanel
-						title="Qualitative Analysis",
-						width=12,
-						id="qa_tab_panel",
-						fluidRow(
-							box(
-								#title="Galaxy Job Design and Upload tool",
-								width=12,
-								id="galaxy_job_submitter_box_qa"
-								), #below this goes another rhansdsontable
-						fluidRow(
-						   title="rhandson_box_qa",
-						   id="handson_box_qa",
-						   width="12",
-						   #height="600px",
-						   box(
-								title="Experimental Design Table",
-								id="interior_handson_box_qa",
-								width=12,
-								rHandsontableOutput("hot_qa")
-							   )
-							)#endofHandsonFluidRow
-								
-						)
-					),#end of Qualitative Analysis TabPanel
-					
 					tabPanel(#DIA+DDA
 						title="LFQ Intensity Comparative Analysis (DDA-ID+DIA-Quant)",
 						width=12,
@@ -459,8 +435,67 @@ server <- function(input, output, session) {
 							box(
 								#title="Galaxy Job Design and Upload tool",
 								width=12,
-								id="galaxy_job_submitter_box_dia_dda"
-								), #below this goes another rhansdsontable
+								id="galaxy_job_submitter_box_dia_dda",
+							conditionalPanel(
+							condition="!output.fastafileReceivedDIADDA",
+							h2("1. Choose an Experiment Name and provide required annotations:"),
+							textInput("historyNameDIADDA","Experiment Name:"),
+							wellPanel(h4("Enter full PI names below:"),
+									  splitLayout(        inputPanel(textInput("pifirstNameDIADDA","PI First Name (Full):")),#,
+														  #helpText("e.g. \"James\"")),
+														  inputPanel(textInput("pilastNameDIADDA","PI Last Name (Full):"))#,
+														  #helpText("e.g. \"Wohlschlegel\""))
+									  )
+							),
+							textInput("sampleContactNameDIADDA","Collaboration Contact Name:"),
+							helpText("e.g. \"Hee Jong Kim\" or \"Buck Strickland\" - This is usually the person who generated the biological material.")
+							),
+						  conditionalPanel(
+							condition = "input.historyNameDIADDA.length > 0 && input.pilastNameDIADDA.length > 0 && input.pifirstNameDIADDA.length > 0 && input.sampleContactNameDIADDA.length > 0 && !output.fastafileReceivedDIADDA",
+							#h3("2. Upload files:"),
+							h2("2. Upload protein FASTA database:"),
+							helpText("Target sequences only!"),
+							fileInput('fastafileDIADDA','Select FASTA file',accept=c(".fasta",".FASTA"))
+							),
+							conditionalPanel(
+							  condition = "output.fastafileReceivedDIADDA && !output.skylinefileReceivedDIADDA && !input.QAcheckDIADDA",
+							  h2("3. Upload empty Skyline file:"),
+							  helpText("File should be set up for the desired analysis, modifications, and acquisition parameters."),
+							  fileInput('skylinefileDIADDA','Select Skyline file', accept=c(".sky")),
+							  checkboxInput('QAcheckDIADDA','Identification Analysis Only (No Intensity Analysis)',value=FALSE)
+
+							),
+							conditionalPanel(
+							  condition = "(input.QAcheckDIADDA || output.skylinefileReceivedDIADDA) && !output.diawindowfileReceivedDIADDA && !input.DDAcheckDIADDA",
+							  h2("4. If DIA, upload DIAUmpire window definitions, otherwise check DDA box:"),
+							  helpText("Window definitions must be saved without quotes or commas, etc, in a tsv or csv file with two columns (start and end m/z values)"),
+							  fileInput('diawindowfileDIADDA','Select DIA Window file', accept=c(".csv",".tsv",".txt")),
+							  checkboxInput('DDAcheckDIADDA','DDA File Upload: SKIP',value=FALSE)
+							),
+
+							conditionalPanel(
+							  condition = "!output.datafilesReceivedDIADDA && (input.DDAcheckDIADDA || output.diawindowfileReceivedDIADDA)",
+							  h2("5. Upload mass spec data:"),
+							  helpText("mzML files should be zlib compressed and centroided"),
+							  fileInput('filesDIADDA', 'Choose raw/mzML files', accept=c('.raw','.mzML','.mzml'),multiple=TRUE)
+							),
+						  conditionalPanel(condition="output.datafilesReceivedDIADDA",
+										   wellPanel(
+											 h2("6. Edit the table below, and click the save button below to send\nthe experimental design to Galaxy"),
+											 #h3("Save"), 
+											 actionButton("save", "Save table")
+										   )
+										),
+                                                        conditionalPanel(
+								condition=FALSE,
+								verbatimTextOutput('uploadedFASTADIADDA'),
+								verbatimTextOutput('uploadedSkylineDIADDA'),
+								verbatimTextOutput('uploadedDIAwindowfileDIADDA'),
+								verbatimTextOutput('uploadedDIADDA')
+						        )
+
+							)#end of the box
+						),
 						fluidRow(
 						   title="rhandson_box",
 						   id="handson_box_dia_dda",
@@ -471,11 +506,10 @@ server <- function(input, output, session) {
 								id="interior_handson_box_dia_dda",
 								width=12,
 								
-								rHandsontableOutput("hot_dia_dda")
+								rHandsontableOutput("hotDIADDA")
 							   )
 							)#endofHandsonFluidRow
 								
-						)
 					),#end of DIA+DDA Analysis TabPanel
 
 					tabPanel(#TMT Analysis tabPanel
@@ -2707,6 +2741,7 @@ server <- function(input, output, session) {
   )
   ##### /Excel Report
   
+
   ####################################################################### Galaxy Upload tool server side code v.0.1.5
   ###### Galaxy upload global
   options(shiny.maxRequestSize=50000*1024^2)
@@ -2747,9 +2782,26 @@ server <- function(input, output, session) {
     return(!is.null(input$files))
   })
   outputOptions(output, 'datafilesReceived', suspendWhenHidden=FALSE)
+
+
+
+  output$skylinefileReceivedDIADDA <-reactive({
+    return(!is.null(input$skylinefileDIADDA))
+  })
+  outputOptions(output, 'skylinefileReceivedDIADDA', suspendWhenHidden=FALSE)
+  
+  output$fastafileReceivedDIADDA <-reactive({
+    return(!is.null(input$fastafileDIADDA))
+  })
+  outputOptions(output, 'fastafileReceivedDIADDA', suspendWhenHidden=FALSE)
+  
+  output$datafilesReceivedDIADDA <-reactive({
+    return(!is.null(input$filesDIADDA))
+  })
+  outputOptions(output, 'datafilesReceivedDIADDA', suspendWhenHidden=FALSE)
   
   
-  #We'll handle the file upload here!
+  #We'll handle the file upload here! (LFQ // QA, just DDA)
   output$uploaded<-renderText({
     inFiles <- input$files
     print(inFiles)
@@ -2794,7 +2846,6 @@ server <- function(input, output, session) {
     write("\t\thistory_id=new_hist[u\'id\']\n",python_file,append=TRUE)
     write(paste0("except:\n\tif history_id==0:\n\t\thistory_id=histories[0][u\'id\']\n"),python_file,append=TRUE)
     
-    #write("",python_file,append=TRUE)
     write("incoming_files={",python_file,append=TRUE)
     for(i in 1:length(inFiles[,1])){
       write(paste0("\'",inFiles[[i,'datapath']],"\':\'",inFiles$name[i],"\'"),python_file,append=TRUE)
@@ -2808,48 +2859,105 @@ server <- function(input, output, session) {
     
     write("for each_path in incoming_files:\n\ttry:\n\t\tos.symlink(each_path,incoming_files[each_path])\n",python_file,append=TRUE)
     write("\texcept:\n\t\tos.remove(incoming_files[each_path])\n\t\tos.symlink(each_path,incoming_files[each_path])\n",python_file,append=TRUE)
-    #write("id_dict={}\n",python_file,append=TRUE)
     write("collection_dict={\'collection_type\':\'list\',\'element_identifiers\':[],\'name\':\'RAW Mass Spec Files\'}\n",python_file,append=TRUE)
-    
-    
-    
-    #write("print id_dict\n",python_file,append=TRUE)
-    #writeLines(c(),python_file)
-    
-    #python.exec()
-    #history <- gx_list_histories()
-    #history_vector <- history$id
-    
-    
-    
     close(python_file)
-    #print(python_file)
     print("That's the python file!")
     
     progress <- shiny::Progress$new()
     on.exit(progress$close())
-    #max_iter<-length(inFiles[,1])
     python.load(python_file_path)
     progress$set(message = "Transferring Files to Galaxy...", value = 0)
     if(length(inFiles$name)>=1){
       for(i in 1:length(inFiles[,1])){
         progress$inc(1/length(inFiles[,1]), detail = paste("Uploading file ", i))
         python.exec(paste0("uploaded=gi.tools.upload_file(\"",inFiles$name[i],"\",history_id)"))
-        #python.exec("id_dict[uploaded[u\'outputs\'][0][u\'id\']]=uploaded[u\'outputs\'][0][u\'name\']")
         python.exec("collection_dict[\'element_identifiers\'].append({\'id':\'{0}\'.format(uploaded[u\'outputs\'][0][u\'id\']),\'name\':uploaded[u\'outputs\'][0][u\'name\'],\'src\':\'hda\'})")
       }
       python.exec("gi.histories.create_dataset_collection(history_id,collection_dict)")
     }
-    #else{
-    #  print("We skipped uploading and making histories, because we had no files...")
-    #}
-    #unlink(python_file_path)
-    #print(inFiles)
-    #print("I'm outta here!")
-    #return(TRUE)
   })
+    #End LFQ //QA file upload
+
+
+  #We'll handle the file upload here! (DIA+DDA)
+  output$uploadedDIADDA<-renderText({
+    inFiles <- input$filesDIADDA
+    print(inFiles)
+    
+    
+    if(is.null(inFiles)){
+      print("inFiles IS NULL!!!")
+      return(NULL)
+    }
+    else{
+      print("inFiles WAS NOT null...")
+    }
+    if(input$historyName==""){
+      print("We will upload the data into the most recent history used...")
+    } else {
+      history<-input$historyName
+      print("We will upload data into history ...")
+      print(history)
+    }
+    
+    #Let's write out python script...
+    
+    python_file_tmp<-file(tempfile(pattern = "file", tmpdir = tempdir()))
+    python_file_path<-summary(python_file_tmp)$description
+    close(python_file_tmp)
+    python_file<-file(python_file_path,"w")
+    print(python_file_path)
+    print("that's the python file location")
+    write('from bioblend.galaxy import GalaxyInstance\nimport sys\nimport os\n',python_file,append=TRUE)
+    
+    
+    
+    
+    write(paste0("gi = GalaxyInstance(\"",galaxy_address,"\", key=\'",galaxy_API_key(),"\')\n"),python_file,append=TRUE)
+    write("history_id=0\n",python_file,append=TRUE)
+    write("histories=gi.histories.get_histories()\nhistory_id=0\nfor each_history in histories:\n",python_file,append=TRUE)
+    write(paste0("\tif each_history[u\'name\']==\'",history,"\' and not each_history[u\'deleted\']:\n"),python_file,append=TRUE)
+    write("\t\thistory_id=each_history[u\'id\']\n\t\tbreak\n",python_file,append=TRUE)
+    
+    write("try:\n\tif history_id==0:\n",python_file,append=TRUE)
+    write(paste0("\t\tnew_hist=gi.histories.create_history(name=\'",history,"\')\n"),python_file,append=TRUE)
+    write("\t\thistory_id=new_hist[u\'id\']\n",python_file,append=TRUE)
+    write(paste0("except:\n\tif history_id==0:\n\t\thistory_id=histories[0][u\'id\']\n"),python_file,append=TRUE)
+    
+    write("incoming_files={",python_file,append=TRUE)
+    for(i in 1:length(inFiles[,1])){
+      write(paste0("\'",inFiles[[i,'datapath']],"\':\'",inFiles$name[i],"\'"),python_file,append=TRUE)
+      if(i!=length(inFiles[,1])){
+        write(",",python_file,append=TRUE)
+      }
+      
+    }
+    write("}\n",python_file,append=TRUE)
+    
+    
+    write("for each_path in incoming_files:\n\ttry:\n\t\tos.symlink(each_path,incoming_files[each_path])\n",python_file,append=TRUE)
+    write("\texcept:\n\t\tos.remove(incoming_files[each_path])\n\t\tos.symlink(each_path,incoming_files[each_path])\n",python_file,append=TRUE)
+    write("collection_dict={\'collection_type\':\'list\',\'element_identifiers\':[],\'name\':\'DDA (ID) RAW Mass Spec Files\'}\n",python_file,append=TRUE)
+    close(python_file)
+    print("That's the python file!")
+    
+    progress <- shiny::Progress$new()
+    on.exit(progress$close())
+    python.load(python_file_path)
+    progress$set(message = "Transferring Files to Galaxy...", value = 0)
+    if(length(inFiles$name)>=1){
+      for(i in 1:length(inFiles[,1])){
+        progress$inc(1/length(inFiles[,1]), detail = paste("Uploading file ", i))
+        python.exec(paste0("uploaded=gi.tools.upload_file(\"",inFiles$name[i],"\",history_id)"))
+        python.exec("collection_dict[\'element_identifiers\'].append({\'id':\'{0}\'.format(uploaded[u\'outputs\'][0][u\'id\']),\'name\':uploaded[u\'outputs\'][0][u\'name\'],\'src\':\'hda\'})")
+      }
+      python.exec("gi.histories.create_dataset_collection(history_id,collection_dict)")
+    }
+  })
+    #End LFQ DIA+DDA
+
   
-  ## Handsontable
+  ## Handsontable LFQ
   observe({
     if (!is.null(input$hot)) {
       DF = hot_to_r(input$hot)
@@ -2861,34 +2969,59 @@ server <- function(input, output, session) {
     }
     values[["DF"]] <- DF
   })
+
+  ## Handsontable LFQ DDA+DIA
+  observe({
+    if (!is.null(input$hotDIADDA)) {
+      DF = hot_to_r(input$hotDIADDA)
+    } else {
+      if (is.null(values[["DF"]]))
+        DF <- DF
+      else
+        DF <- values[["DF"]]
+    }
+    values[["DF"]] <- DF
+  })
+
   
-  ## Fill out the handsontable based on the uploaded file names...
+  ## Fill out the handsontable based on the uploaded file names... (LFQ)
   observe({
     if(!is.null(input$files)){
       inFiles<-input$files
-      #for(i in 1:length(inFiles[,1])){
-      #path<-inFiles[[i,'datapath']]
-      print(inFiles)#,"going in....")
-      #inFiles$files<-unlist(strsplit(inFiles$files, ".(?!.*\\.)", perl = TRUE))
+      print(inFiles)
       
       fileName= inFiles$name
       fileName<-unlist(strsplit(fileName, ".(?!.*\\.)", perl = TRUE))
       fileName<-fileName[fileName!=""]
       bioReplicate = integer(length(fileName))
-      #displayName<-paste("Example ",1:length(fileName),sep="")
-      #fractionGroupString = fileName
       bioConditionName <- rep("",times=length(fileName))
-      #bioConditionName <- paste(" ", c[1,] "with", c[2,])
       controlBool <- rep(FALSE,times=length(fileName))
-      #DF = data.frame(fileName,bioReplicate,displayName,bioConditionName,controlBool,fractionGroupString,stringsAsFactors = FALSE)
 	  DF = data.frame(fileName,bioReplicate,bioConditionName,controlBool,stringsAsFactors = FALSE)
-      #colnames(DF)<-c("File Name","BioReplicate int","Display Name","Condition","Control","FractionGroup String")
 	  colnames(DF)<-c("File Name","BioReplicate int","Condition","Control")
       values[["DF"]]<-DF
     }
-  })
+  })  #END HANDSONTABLE UPADTE CODE LFQ
+
+  ## Fill out the handsontable based on the uploaded file names... (LFQ DIA+DDA)
+  observe({
+    if(!is.null(input$filesDIADDA)){
+      inFiles<-input$filesDIADDA
+      print(inFiles)
+      
+      fileName= inFiles$name
+      fileName<-unlist(strsplit(fileName, ".(?!.*\\.)", perl = TRUE))
+      fileName<-fileName[fileName!=""]
+      bioReplicate = integer(length(fileName))
+      bioConditionName <- rep("",times=length(fileName))
+      controlBool <- rep(FALSE,times=length(fileName))
+	  DF = data.frame(fileName,bioReplicate,bioConditionName,controlBool,stringsAsFactors = FALSE)
+	  colnames(DF)<-c("File Name","BioReplicate int","Condition","Control")
+      values[["DF"]]<-DF
+    }
+  })  #END HANDSONTABLE UPADTE CODE LFQ DIA+DDA
+
   
-  #Handle FASTA file upload...
+  #Handle FASTA file upload... LFQ
   output$uploadedFASTA<-renderText({
     inFiles <- input$fastafile
     history<-input$historyName
@@ -2909,7 +3042,6 @@ server <- function(input, output, session) {
     write('from bioblend.galaxy import GalaxyInstance\nimport sys\nimport os\n',python_file,append=TRUE)
     
     write(paste0("gi = GalaxyInstance(\"",galaxy_address,"\", key=\'",galaxy_API_key(),"\')\n"),python_file,append=TRUE)
-    #write("history_id=0\n",python_file,append=TRUE)
     write("histories=gi.histories.get_histories()\nhistory_id=0\nfor each_history in histories:\n",python_file,append=TRUE)
     write(paste0("\tif each_history[u\'name\']==\'",history,"\' and not each_history[u\'deleted\']:\n"),python_file,append=TRUE)
     write("\t\thistory_id=each_history[u\'id\']\n\t\tbreak\n",python_file,append=TRUE)
@@ -2921,9 +3053,6 @@ server <- function(input, output, session) {
     #Here is the code to add in the tags!
     write(paste0("\t\tgi.histories.create_history_tag(history_id,tag=\"pi:",gsub(" ","_",toupper(input$pifirstName)),"_",gsub(" ","_",toupper(input$pilastName)),"\")\n"),python_file,append=TRUE)
     write(paste0("\t\tgi.histories.create_history_tag(history_id,tag=\"cc:",gsub(" ","_",toupper(input$sampleContactName)),"\")\n"),python_file,append=TRUE)
-    
-    #write(paste0("except:\n\tif history_id==0:\n\t\thistory_id=histories[0][u\'id\']\n"),python_file,append=TRUE)
-    
     
     write("incoming_files={",python_file,append=TRUE)
     for(i in 1:length(inFiles[,1])){
@@ -2943,14 +3072,73 @@ server <- function(input, output, session) {
     write("for each_file in incoming_files.values():\n\tuploaded=gi.tools.upload_file(each_file,history_id)\n",python_file,append=TRUE)
     
     close(python_file)
-    #return(getwd())
     python.load(python_file_path)
     
     print("We're done uploading the FASTA file.")
     
-  })
+  }) #END LFQ DDA FASTA UPLOAD
+
+
+  #Handle FASTA file upload... LFQ
+  output$uploadedFASTADIADDA<-renderText({
+    inFiles <- input$fastafileDIADDA
+    history<-input$historyNameDIADDA
+    if(is.null(inFiles)){
+      print("inFiles IS NULL!!!")
+      return(NULL)
+    }
+    else{
+      print("inFiles WAS NOT null... Uploading FASTA!")
+    }
+    
+    python_file_tmp<-file(tempfile(pattern = "file", tmpdir = tempdir()))
+    python_file_path<-summary(python_file_tmp)$description
+    close(python_file_tmp)
+    python_file<-file(python_file_path,"w")
+    print(python_file_path)
+    print("that's the python file location for writing the output....")
+    write('from bioblend.galaxy import GalaxyInstance\nimport sys\nimport os\n',python_file,append=TRUE)
+    
+    write(paste0("gi = GalaxyInstance(\"",galaxy_address,"\", key=\'",galaxy_API_key(),"\')\n"),python_file,append=TRUE)
+    write("histories=gi.histories.get_histories()\nhistory_id=0\nfor each_history in histories:\n",python_file,append=TRUE)
+    write(paste0("\tif each_history[u\'name\']==\'",history,"\' and not each_history[u\'deleted\']:\n"),python_file,append=TRUE)
+    write("\t\thistory_id=each_history[u\'id\']\n\t\tbreak\n",python_file,append=TRUE)
+    
+    write("if True:\n\tif history_id==0:\n",python_file,append=TRUE)##### <------------------------------------------------------ CHANGED FROM TRY TO IF TRUE
+    write(paste0("\t\tnew_hist=gi.histories.create_history(name=\'",history,"\')\n"),python_file,append=TRUE)
+    write("\t\thistory_id=new_hist[u\'id\']\n",python_file,append=TRUE)
+    
+    #Here is the code to add in the tags!
+    write(paste0("\t\tgi.histories.create_history_tag(history_id,tag=\"pi:",gsub(" ","_",toupper(input$pifirstName)),"_",gsub(" ","_",toupper(input$pilastName)),"\")\n"),python_file,append=TRUE)
+    write(paste0("\t\tgi.histories.create_history_tag(history_id,tag=\"cc:",gsub(" ","_",toupper(input$sampleContactName)),"\")\n"),python_file,append=TRUE)
+    
+    write("incoming_files={",python_file,append=TRUE)
+    for(i in 1:length(inFiles[,1])){
+      write(paste0("\'",inFiles[[i,'datapath']],"\':\'",inFiles$name[i],"\'"),python_file,append=TRUE)
+      if(i!=length(inFiles[,1])){
+        write(",",python_file,append=TRUE)
+      }
+      
+    }
+    write("}\n",python_file,append=TRUE)
+    
+    
+    write(paste0("for each_path in incoming_files:\n\ttry:\n\t\tprint each_path,incoming_files[each_path],os.chdir(os.path.dirname(each_path))\n\t\tos.symlink(each_path,incoming_files[each_path])\n"),python_file,append=TRUE)
+    
+    write("\texcept:\n\t\tos.remove(incoming_files[each_path])\n\t\tos.symlink(each_path,incoming_files[each_path])\n",python_file,append=TRUE)
+    
+    write("for each_file in incoming_files.values():\n\tuploaded=gi.tools.upload_file(each_file,history_id)\n",python_file,append=TRUE)
+    
+    close(python_file)
+    python.load(python_file_path)
+    
+    print("We're done uploading the FASTA file.")
+    
+  }) #END LFQ DIA+DDA FASTA UPLOAD
+
+
   
-  #Handle Skyline file upload...
+  #Handle Skyline file upload... LFQ DDA
   output$uploadedSkyline<-renderText({
     inFiles <- input$skylinefile
     history<-input$historyName
@@ -3004,6 +3192,60 @@ server <- function(input, output, session) {
     print("We're done uploading the Skyline file.")
     
   })
+
+  #Handle Skyline file upload... LFQ DIA+DDA
+  output$uploadedSkyline<-renderText({
+    inFiles <- input$skylinefileDIADDA
+    history<-input$historyNameDIADDA
+    if(is.null(inFiles)){
+      print("inFiles IS NULL!!!")
+      return(NULL)
+    }
+    else{
+      print("inFiles WAS NOT null... Uploading Skyline File!")
+    }
+    
+    python_file_tmp<-file(tempfile(pattern = "file", tmpdir = tempdir()))
+    python_file_path<-summary(python_file_tmp)$description
+    close(python_file_tmp)
+    python_file<-file(python_file_path,"w")
+    print(python_file_path)
+    print("that's the python file location for writing the output....")
+    write('from bioblend.galaxy import GalaxyInstance\nimport sys\nimport os\n',python_file,append=TRUE)
+    
+    write(paste0("gi = GalaxyInstance(\"",galaxy_address,"\", key=\'",galaxy_API_key(),"\')\n"),python_file,append=TRUE)
+    write("histories=gi.histories.get_histories()\nhistory_id=0\nfor each_history in histories:\n",python_file,append=TRUE)
+    write(paste0("\tif each_history[u\'name\']==\'",history,"\' and not each_history[u\'deleted\']:\n"),python_file,append=TRUE)
+    write("\t\thistory_id=each_history[u\'id\']\n\t\tbreak\n",python_file,append=TRUE)
+    
+    write("try:\n\tif history_id==0:\n",python_file,append=TRUE)
+    write(paste0("\t\tnew_hist=gi.histories.create_history(name=\'",history,"\')\n"),python_file,append=TRUE)
+    write("\t\thistory_id=new_hist[u\'id\']\n",python_file,append=TRUE)
+    write(paste0("except:\n\tif history_id==0:\n\t\thistory_id=histories[0][u\'id\']\n"),python_file,append=TRUE)
+    
+    
+    write("incoming_files={",python_file,append=TRUE)
+    for(i in 1:length(inFiles[,1])){
+      write(paste0("\'",inFiles[[i,'datapath']],"\':\'",inFiles$name[i],"\'"),python_file,append=TRUE)
+      if(i!=length(inFiles[,1])){
+        write(",",python_file,append=TRUE)
+      }
+      
+    }
+    write("}\n",python_file,append=TRUE)
+    
+    
+    write("for each_path in incoming_files:\n\ttry:\n\t\tos.symlink(each_path,incoming_files[each_path])\n",python_file,append=TRUE)
+    write("\texcept:\n\t\tos.remove(incoming_files[each_path])\n\t\tos.symlink(each_path,incoming_files[each_path])\n",python_file,append=TRUE)
+    
+    write("for each_file in incoming_files.values():\n\tuploaded=gi.tools.upload_file(each_file,history_id)\n",python_file,append=TRUE)
+    
+    close(python_file)
+    python.load(python_file_path)
+    
+    print("We're done uploading the Skyline file.")
+    
+  }) #END SKYLINE FILE DIA+DDA
 
   #Handle DIAUmpire Window file upload...
   output$uploadedDIAwindowfile<-renderText({
@@ -3066,13 +3308,7 @@ server <- function(input, output, session) {
       rhandsontable(DF, useTypes = TRUE, stretchH = "all",overflow='visible')
   })
 
-  output$hot_qa <- renderRHandsontable({
-    DF <- values[["DF"]]
-    if (!is.null(DF))
-      rhandsontable(DF, useTypes = TRUE, stretchH = "all",overflow='visible')
-  })
-
-    output$hot_dia_dda <- renderRHandsontable({
+    output$hotDIADDA <- renderRHandsontable({
     DF <- values[["DF"]]
     if (!is.null(DF))
       rhandsontable(DF, useTypes = TRUE, stretchH = "all",overflow='visible')
@@ -3085,7 +3321,7 @@ server <- function(input, output, session) {
   })
 
   
-  ## Save 
+  ## Save LFQ DDA
   observeEvent(input$save, {
     finalDF <- isolate(values[["DF"]])
     history<-input$historyName
@@ -3136,7 +3372,60 @@ server <- function(input, output, session) {
     showNotification("The table has been uploaded to Galaxy!")
     
   })
-  ####################################################################### /Galaxy Upload tool server side code v.0.1.5
+
+  ## Save LFQ DIA+DDA
+  observeEvent(input$saveDIADDA, {
+    finalDF <- isolate(values[["DF"]])
+    history<-input$historyNameDIADDA
+    #saveRDS(finalDF, file=file.path(outdir, sprintf("%s.rds", outfilename)))
+    design_file_tmp<-file(tempfile(pattern = "Experimental_Design", tmpdir = tempdir()))
+    design_file_path<-summary(design_file_tmp)$description
+    close(design_file_tmp)
+    
+    design_file<-file(design_file_path,"w")
+    
+    for (i in 1:length(finalDF[,'File Name'])){
+      if(finalDF[i,'Control']){
+        #write(paste(finalDF[i,'File Name'],finalDF[i,'FractionGroup String'],finalDF[i,'Condition'],"C",finalDF[i,'BioReplicate int'],sep="___"),design_file,sep="\n")
+		write(paste(finalDF[i,'File Name'],finalDF[i,'File Name'],finalDF[i,'Condition'],"C",finalDF[i,'BioReplicate int'],sep="___"),design_file,sep="\n")
+      }else{
+        #write(paste(finalDF[i,'File Name'],finalDF[i,'FractionGroup String'],finalDF[i,'Condition'],"T",finalDF[i,'BioReplicate int'],sep="___"),design_file,sep="\n")
+		write(paste(finalDF[i,'File Name'],finalDF[i,'File Name'],finalDF[i,'Condition'],"T",finalDF[i,'BioReplicate int'],sep="___"),design_file,sep="\n")
+      }
+    }
+    close(design_file)
+    print(design_file_path)
+    print("above is where the design file was written...")
+    
+    python_file_tmp<-file(tempfile(pattern = "file", tmpdir = tempdir()))
+    python_file_path<-summary(python_file_tmp)$description
+    close(python_file_tmp)
+    python_file<-file(python_file_path,"w")
+    print(python_file_path)
+    print("that's the python file location gor writing the output....")
+    write('from bioblend.galaxy import GalaxyInstance\nimport sys\nimport os\n',python_file,append=TRUE)
+    
+    write(paste0("gi = GalaxyInstance(\"",galaxy_address,"\", key=\'",galaxy_API_key(),"\')\n"),python_file,append=TRUE)
+    #write("history_id=0\n",python_file,append=TRUE)
+    write("histories=gi.histories.get_histories()\nhistory_id=0\nfor each_history in histories:\n",python_file,append=TRUE)
+    write(paste0("\tif each_history[u\'name\']==\'",history,"\' and not each_history[u\'deleted\']:\n"),python_file,append=TRUE)
+    write("\t\thistory_id=each_history[u\'id\']\n\t\tbreak\n",python_file,append=TRUE)
+    
+    write("try:\n\tif history_id==0:\n",python_file,append=TRUE)
+    write(paste0("\t\tnew_hist=gi.histories.create_history(name=\'",history,"\')\n"),python_file,append=TRUE)
+    write("\t\thistory_id=new_hist[u\'id\']\n",python_file,append=TRUE)
+    write(paste0("except:\n\tif history_id==0:\n\t\thistory_id=histories[0][u\'id\']\n"),python_file,append=TRUE)
+    
+    write(paste0("uploaded=gi.tools.upload_file(\"",design_file_path,"\",history_id)\n"),python_file,append=TRUE)
+    
+    close(python_file)
+    python.load(python_file_path)
+    
+    showNotification("The table has been uploaded to Galaxy!")
+    
+  })
+
+  ####################################################################### /Galaxy Upload tool server side code
 }
 ########### /Shiny SERVER
 
