@@ -388,7 +388,7 @@ server <- function(input, output, session) {
 							),
 
 							conditionalPanel(
-							  condition = "output.skylinefileReceived && !output.datafilesReceived",
+							  condition = "!output.datafilesReceived && (input.DDAcheck || output.diawindowfileReceived)",
 							  h2("5. Upload mass spec data:"),
 							  helpText("mzML files should be zlib compressed and centroided"),
 							  fileInput('files', 'Choose raw/mzML files', accept=c('.raw','.mzML','.mzml'),multiple=TRUE)
