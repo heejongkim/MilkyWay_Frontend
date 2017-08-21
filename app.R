@@ -1,5 +1,5 @@
 # MilkyWay
-# version: 0.3.7a
+# version: 0.3.8
 # Author: Hee Jong Kim, William Barshop
 
 #library(org.Hs.eg.db)
@@ -1078,7 +1078,7 @@ server <- function(input, output, session) {
       wellPanel(textInput("userName", "Galaxy Username (Email Address Form)"),
                 passwordInput("passwd", "Password"),
                 br(), actionButton("Login", "Log in"),
-                br(), helpText("Version 0.3.4 - Updated: 2017/07/14"))
+                br(), helpText("Version 0.3.8 - Updated: 2017/08/21"))
     }
   })
   ##### /LOGIN page associated server side code
@@ -3113,7 +3113,8 @@ server <- function(input, output, session) {
   })  #END HANDSONTABLE UPADTE CODE LFQ
 
   ## Fill out the handsontable based on the uploaded file names... (LFQ DIA+DDA)
-  observe({
+
+  observe({ #DDA
     if(!is.null(input$filesDIADDA)){
       inFiles<-input$filesDIADDA
       print(inFiles)
@@ -3131,9 +3132,9 @@ server <- function(input, output, session) {
   })  #END HANDSONTABLE UPADTE CODE LFQ DIA+DDA (DDA)
 
   
-  observe({
-    if(!is.null(input$filesDIADDA)){
-      inFiles<-input$filesDIADDA
+  observe({ #DIA
+    if(!is.null(input$filesDIADDA_DIA)){
+      inFiles<-input$filesDIADDA_DIA
       print(inFiles)
       
       fileName= inFiles$name
@@ -3512,7 +3513,7 @@ server <- function(input, output, session) {
     finalDF <- isolate(values[["DF"]])
     history<-input$historyNameDIADDA
     #saveRDS(finalDF, file=file.path(outdir, sprintf("%s.rds", outfilename)))
-    design_file_tmp<-file(tempfile(pattern = "Experimental_Design", tmpdir = tempdir()))
+    design_file_tmp<-file(tempfile(pattern = "DDA_Experimental_Design", tmpdir = tempdir()))
     design_file_path<-summary(design_file_tmp)$description
     close(design_file_tmp)
     
@@ -3564,7 +3565,7 @@ server <- function(input, output, session) {
     finalDF <- isolate(values[["DF_DIA"]])
     history<-input$historyNameDIADDA
     #saveRDS(finalDF, file=file.path(outdir, sprintf("%s.rds", outfilename)))
-    design_file_tmp<-file(tempfile(pattern = "Experimental_Design", tmpdir = tempdir()))
+    design_file_tmp<-file(tempfile(pattern = "DIA_Experimental_Design", tmpdir = tempdir()))
     design_file_path<-summary(design_file_tmp)$description
     close(design_file_tmp)
     
