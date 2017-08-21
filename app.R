@@ -2914,7 +2914,7 @@ server <- function(input, output, session) {
     if(input$historyName==""){
       print("We will upload the data into the most recent history used...")
     } else {
-      history<-input$historyName
+      history<-input$historyNameDIADDA
       print("We will upload data into history ...")
       print(history)
     }
@@ -2991,7 +2991,7 @@ server <- function(input, output, session) {
     if(input$historyName==""){
       print("We will upload the data into the most recent history used...")
     } else {
-      history<-input$historyName
+      history<-input$historyNameDIADDA
       print("We will upload data into history ...")
       print(history)
     }
