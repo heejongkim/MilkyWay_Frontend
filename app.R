@@ -340,7 +340,6 @@ server <- function(input, output, session) {
 					title="Galaxy Job Design and Upload tool",
 					width=12,
 					id="galaxy_upload_tabbox",
-					
 					tabPanel(#LFQ Comparison TabPanel
 						title="LFQ Intensity Comparison Analysis (DIA or DDA)",
 						width=12,
@@ -439,7 +438,7 @@ server <- function(input, output, session) {
 							conditionalPanel(
 							condition="!output.fastafileReceivedDIADDA",
 							h2("1. Choose an Experiment Name and provide required annotations:"),
-							textInput("historyNameDIADDA","Experiment Name:"),
+							textInput("historyNameDIADDA","Experiment Name:",value=""),
 							wellPanel(h4("Enter full PI names below:"),
 									  splitLayout(        inputPanel(textInput("pifirstNameDIADDA","PI First Name (Full):")),#,
 														  #helpText("e.g. \"James\"")),
@@ -447,7 +446,7 @@ server <- function(input, output, session) {
 														  #helpText("e.g. \"Wohlschlegel\""))
 									  )
 							),
-							textInput("sampleContactNameDIADDA","Collaboration Contact Name:"),
+							textInput("sampleContactNameDIADDA","Collaboration Contact Name:",value=""),
 							helpText("e.g. \"Hee Jong Kim\" or \"Buck Strickland\" - This is usually the person who generated the biological material.")
 							),
 						  conditionalPanel(
@@ -458,40 +457,44 @@ server <- function(input, output, session) {
 							fileInput('fastafileDIADDA','Select FASTA file',accept=c(".fasta",".FASTA"))
 							),
 							conditionalPanel(
-							  condition = "output.fastafileReceivedDIADDA && !output.skylinefileReceivedDIADDA && !input.QAcheckDIADDA",
+							  condition = "output.fastafileReceivedDIADDA && !output.skylinefileReceivedDIADDA",
 							  h2("3. Upload empty Skyline file:"),
 							  helpText("File should be set up for the desired analysis, modifications, and acquisition parameters."),
-							  fileInput('skylinefileDIADDA','Select Skyline file', accept=c(".sky")),
-							  checkboxInput('QAcheckDIADDA','Identification Analysis Only (No Intensity Analysis)',value=FALSE)
-
+							  fileInput('skylinefileDIADDA','Select Skyline file', accept=c(".sky"))
 							),
 							conditionalPanel(
-							  condition = "(input.QAcheckDIADDA || output.skylinefileReceivedDIADDA) && !output.diawindowfileReceivedDIADDA && !input.DDAcheckDIADDA",
+							  condition = "output.skylinefileReceivedDIADDA && !output.diawindowfileReceivedDIADDA",
 							  h2("4. If DIA, upload DIAUmpire window definitions, otherwise check DDA box:"),
 							  helpText("Window definitions must be saved without quotes or commas, etc, in a tsv or csv file with two columns (start and end m/z values)"),
-							  fileInput('diawindowfileDIADDA','Select DIA Window file', accept=c(".csv",".tsv",".txt")),
-							  checkboxInput('DDAcheckDIADDA','DDA File Upload: SKIP',value=FALSE)
+							  fileInput('diawindowfileDIADDA','Select DIA Window file', accept=c(".csv",".tsv",".txt"))
 							),
 
 							conditionalPanel(
 							  condition = "!output.datafilesReceivedDIADDA && (input.DDAcheckDIADDA || output.diawindowfileReceivedDIADDA)",
-							  h2("5. Upload mass spec data:"),
+							  h2("5. Upload DDA (searchable) mass spec data:"),
 							  helpText("mzML files should be zlib compressed and centroided"),
 							  fileInput('filesDIADDA', 'Choose raw/mzML files', accept=c('.raw','.mzML','.mzml'),multiple=TRUE)
 							),
 						  conditionalPanel(condition="output.datafilesReceivedDIADDA",
 										   wellPanel(
 											 h2("6. Edit the table below, and click the save button below to send\nthe experimental design to Galaxy"),
-											 #h3("Save"), 
-											 actionButton("save", "Save table")
+											 actionButton("saveDIADDA", "Save table")
 										   )
 										),
+							conditionalPanel(
+							  condition = "output.datafilesReceivedDIADDA",
+							  h2("5. Upload DIA (quantitative) mass spec data:"),
+							  helpText("mzML files should be zlib compressed and centroided"),
+							  fileInput('filesDIADDA_DIA', 'Choose raw/mzML files', accept=c('.raw','.mzML','.mzml'),multiple=TRUE)
+							),
+
                                                         conditionalPanel(
 								condition=FALSE,
 								verbatimTextOutput('uploadedFASTADIADDA'),
 								verbatimTextOutput('uploadedSkylineDIADDA'),
 								verbatimTextOutput('uploadedDIAwindowfileDIADDA'),
-								verbatimTextOutput('uploadedDIADDA')
+								verbatimTextOutput('uploadedDIADDA'),
+								verbatimTextOutput('uploadedDIADDA_DIA')
 						        )
 
 							)#end of the box
@@ -2757,8 +2760,10 @@ server <- function(input, output, session) {
   controlBool = c(TRUE, FALSE, FALSE,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA) 
   #DF = data.frame(fileName,bioReplicate,displayName,bioConditionName,controlBool,fractionGroupString)
   DF = data.frame(fileName,bioReplicate,bioConditionName,controlBool)
+  DF_DIA = data.frame(fileName,bioReplicate,bioConditionName,controlBool)
   #colnames(DF)<-c("File Name","BioReplicate int","Display Name","Condition","Control","FractionGroup String")
   colnames(DF)<-c("File Name","BioReplicate int","Condition","Control")
+  colnames(DF_DIA)<-c("File Name","BioReplicate int","Condition","Control")
   ###### /Galaxy upload global
   
   values <- reactiveValues()
@@ -2879,7 +2884,7 @@ server <- function(input, output, session) {
     #End LFQ //QA file upload
 
 
-  #We'll handle the file upload here! (DIA+DDA)
+  #We'll handle the file upload here! (DIA+DDA) (DDA PORTION)
   output$uploadedDIADDA<-renderText({
     inFiles <- input$filesDIADDA
     print(inFiles)
@@ -2954,7 +2959,84 @@ server <- function(input, output, session) {
       python.exec("gi.histories.create_dataset_collection(history_id,collection_dict)")
     }
   })
-    #End LFQ DIA+DDA
+    #End LFQ DIA+DDA (DDA PORTION)
+
+  #We'll handle the file upload here! (DIA+DDA) (DIA PORTION)
+  output$uploadedDIADDA<-renderText({
+    inFiles <- input$filesDIADDA_DIA
+    print(inFiles)
+    
+    
+    if(is.null(inFiles)){
+      print("inFiles IS NULL!!!")
+      return(NULL)
+    }
+    else{
+      print("inFiles WAS NOT null...")
+    }
+    if(input$historyName==""){
+      print("We will upload the data into the most recent history used...")
+    } else {
+      history<-input$historyName
+      print("We will upload data into history ...")
+      print(history)
+    }
+    
+    #Let's write out python script...
+    
+    python_file_tmp<-file(tempfile(pattern = "file", tmpdir = tempdir()))
+    python_file_path<-summary(python_file_tmp)$description
+    close(python_file_tmp)
+    python_file<-file(python_file_path,"w")
+    print(python_file_path)
+    print("that's the python file location")
+    write('from bioblend.galaxy import GalaxyInstance\nimport sys\nimport os\n',python_file,append=TRUE)
+    
+    
+    
+    
+    write(paste0("gi = GalaxyInstance(\"",galaxy_address,"\", key=\'",galaxy_API_key(),"\')\n"),python_file,append=TRUE)
+    write("history_id=0\n",python_file,append=TRUE)
+    write("histories=gi.histories.get_histories()\nhistory_id=0\nfor each_history in histories:\n",python_file,append=TRUE)
+    write(paste0("\tif each_history[u\'name\']==\'",history,"\' and not each_history[u\'deleted\']:\n"),python_file,append=TRUE)
+    write("\t\thistory_id=each_history[u\'id\']\n\t\tbreak\n",python_file,append=TRUE)
+    
+    write("try:\n\tif history_id==0:\n",python_file,append=TRUE)
+    write(paste0("\t\tnew_hist=gi.histories.create_history(name=\'",history,"\')\n"),python_file,append=TRUE)
+    write("\t\thistory_id=new_hist[u\'id\']\n",python_file,append=TRUE)
+    write(paste0("except:\n\tif history_id==0:\n\t\thistory_id=histories[0][u\'id\']\n"),python_file,append=TRUE)
+    
+    write("incoming_files={",python_file,append=TRUE)
+    for(i in 1:length(inFiles[,1])){
+      write(paste0("\'",inFiles[[i,'datapath']],"\':\'",inFiles$name[i],"\'"),python_file,append=TRUE)
+      if(i!=length(inFiles[,1])){
+        write(",",python_file,append=TRUE)
+      }
+      
+    }
+    write("}\n",python_file,append=TRUE)
+    
+    
+    write("for each_path in incoming_files:\n\ttry:\n\t\tos.symlink(each_path,incoming_files[each_path])\n",python_file,append=TRUE)
+    write("\texcept:\n\t\tos.remove(incoming_files[each_path])\n\t\tos.symlink(each_path,incoming_files[each_path])\n",python_file,append=TRUE)
+    write("collection_dict={\'collection_type\':\'list\',\'element_identifiers\':[],\'name\':\'DIA (Quant) RAW Mass Spec Files\'}\n",python_file,append=TRUE)
+    close(python_file)
+    print("That's the python file!")
+    
+    progress <- shiny::Progress$new()
+    on.exit(progress$close())
+    python.load(python_file_path)
+    progress$set(message = "Transferring Files to Galaxy...", value = 0)
+    if(length(inFiles$name)>=1){
+      for(i in 1:length(inFiles[,1])){
+        progress$inc(1/length(inFiles[,1]), detail = paste("Uploading file ", i))
+        python.exec(paste0("uploaded=gi.tools.upload_file(\"",inFiles$name[i],"\",history_id)"))
+        python.exec("collection_dict[\'element_identifiers\'].append({\'id':\'{0}\'.format(uploaded[u\'outputs\'][0][u\'id\']),\'name\':uploaded[u\'outputs\'][0][u\'name\'],\'src\':\'hda\'})")
+      }
+      python.exec("gi.histories.create_dataset_collection(history_id,collection_dict)")
+    }
+  })
+    #End LFQ DIA+DDA (DIA PORTION)
 
   
   ## Handsontable LFQ
@@ -2971,6 +3053,7 @@ server <- function(input, output, session) {
   })
 
   ## Handsontable LFQ DDA+DIA
+  #DDA
   observe({
     if (!is.null(input$hotDIADDA)) {
       DF = hot_to_r(input$hotDIADDA)
@@ -2981,6 +3064,19 @@ server <- function(input, output, session) {
         DF <- values[["DF"]]
     }
     values[["DF"]] <- DF
+  })
+
+  #DIA
+  observe({
+    if (!is.null(input$hotDIADDA_DIA)) {
+      DF_DIA = hot_to_r(input$hotDIADDA_DIA)
+    } else {
+      if (is.null(values[["DF_DIA"]]))
+        DF_DIA <- DF_DIA
+      else
+        DF_DIA <- values[["DF_DIA"]]
+    }
+    values[["DF_DIA"]] <- DF_DIA
   })
 
   
@@ -3018,7 +3114,25 @@ server <- function(input, output, session) {
 	  colnames(DF)<-c("File Name","BioReplicate int","Condition","Control")
       values[["DF"]]<-DF
     }
-  })  #END HANDSONTABLE UPADTE CODE LFQ DIA+DDA
+  })  #END HANDSONTABLE UPADTE CODE LFQ DIA+DDA (DDA)
+
+  
+  observe({
+    if(!is.null(input$filesDIADDA)){
+      inFiles<-input$filesDIADDA
+      print(inFiles)
+      
+      fileName= inFiles$name
+      fileName<-unlist(strsplit(fileName, ".(?!.*\\.)", perl = TRUE))
+      fileName<-fileName[fileName!=""]
+      bioReplicate = integer(length(fileName))
+      bioConditionName <- rep("",times=length(fileName))
+      controlBool <- rep(FALSE,times=length(fileName))
+	  DF_DIA = data.frame(fileName,bioReplicate,bioConditionName,controlBool,stringsAsFactors = FALSE)
+	  colnames(DF_DIA)<-c("File Name","BioReplicate int","Condition","Control")
+      values[["DF_DIA"]]<-DF_DIA
+    }
+  })  #END HANDSONTABLE UPADTE CODE LFQ DIA+DDA (DIA)
 
   
   #Handle FASTA file upload... LFQ
@@ -3194,7 +3308,7 @@ server <- function(input, output, session) {
   })
 
   #Handle Skyline file upload... LFQ DIA+DDA
-  output$uploadedSkyline<-renderText({
+  output$uploadedSkylineDIADDA<-renderText({
     inFiles <- input$skylinefileDIADDA
     history<-input$historyNameDIADDA
     if(is.null(inFiles)){
