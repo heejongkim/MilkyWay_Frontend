@@ -1,5 +1,5 @@
 # MilkyWay
-# version: 0.3.8
+# version: 0.3.9
 # Author: Hee Jong Kim, William Barshop
 
 #library(org.Hs.eg.db)
@@ -3576,13 +3576,18 @@ server <- function(input, output, session) {
     
     design_file<-file(design_file_path,"w")
     
+    write(paste("Crux File Integer","Original File Name","Fractionation Group ID String","Fractionation Group Name","Biological Condition","Test or Control","BioReplicate",sep="\t"),design_file,sep="\n")
     for (i in 1:length(finalDF[,'File Name'])){
       if(finalDF[i,'Control']){
         #write(paste(finalDF[i,'File Name'],finalDF[i,'FractionGroup String'],finalDF[i,'Condition'],"C",finalDF[i,'BioReplicate int'],sep="___"),design_file,sep="\n")
-		write(paste(finalDF[i,'File Name'],finalDF[i,'File Name'],finalDF[i,'Condition'],"C",finalDF[i,'BioReplicate int'],sep="___"),design_file,sep="\n")
+        write(paste(toString(i-1),finalDF[i,'File Name'],finalDF[i,'File Name'],finalDF[i,'File Name'],finalDF[i,'Condition'],"C",finalDF[i,'BioReplicate int'],sep="\t"),design_file,sep="\n")
+
+	#write(paste(finalDF[i,'File Name'],finalDF[i,'File Name'],finalDF[i,'Condition'],"C",finalDF[i,'BioReplicate int'],sep="___"),design_file,sep="\n")
       }else{
         #write(paste(finalDF[i,'File Name'],finalDF[i,'FractionGroup String'],finalDF[i,'Condition'],"T",finalDF[i,'BioReplicate int'],sep="___"),design_file,sep="\n")
-		write(paste(finalDF[i,'File Name'],finalDF[i,'File Name'],finalDF[i,'Condition'],"T",finalDF[i,'BioReplicate int'],sep="___"),design_file,sep="\n")
+	#write(paste(finalDF[i,'File Name'],finalDF[i,'File Name'],finalDF[i,'Condition'],"T",finalDF[i,'BioReplicate int'],sep="___"),design_file,sep="\n")
+        write(paste(toString(i-1),finalDF[i,'File Name'],finalDF[i,'File Name'],finalDF[i,'File Name'],finalDF[i,'Condition'],"T",finalDF[i,'BioReplicate int'],sep="\t"),design_file,sep="\n")
+
       }
     }
     close(design_file)
