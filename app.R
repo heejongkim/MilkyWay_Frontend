@@ -1,5 +1,5 @@
 # MilkyWay
-# version: 0.3.9
+# version: 0.3.9b
 # Author: Hee Jong Kim, William Barshop
 
 #library(org.Hs.eg.db)
@@ -72,7 +72,7 @@ server <- function(input, output, session) {
           Username <- isolate(input$userName)
           Password <- isolate(input$passwd)
           if (length(Username) > 0 & length(Password) > 0) {
-            galaxy_con <- GET("http://127.0.0.1/api/authenticate/baseauth", authenticate(Username, Password))
+            galaxy_con <- GET("http://192.168.2.102/api/authenticate/baseauth", authenticate(Username, Password))
             if (status_code(galaxy_con) == 200) {
               USER$Logged <- TRUE
               USER$api_key <- content(galaxy_con)$api_key
@@ -1089,7 +1089,7 @@ server <- function(input, output, session) {
   observe({
     if (USER$api_key != ""){
       gx_init(USER$api_key,
-              GALAXY_URL='http://127.0.0.1/',
+              GALAXY_URL='http://192.168.2.102/',
               HISTORY_ID = "")
       history <- gx_list_histories()
       history <- cbind(history_index = rownames(history), history)
@@ -2763,7 +2763,7 @@ server <- function(input, output, session) {
   ###### Galaxy upload global
   options(shiny.maxRequestSize=50000*1024^2)
   
-  galaxy_address<-'127.0.0.1'
+  galaxy_address<-'192.168.2.102'
   galaxy_API_key<-reactive({USER$api_key})
   
   fileName= c("example-file-1.raw","example-file-2-A.raw","example-file-2-B.raw",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA)
