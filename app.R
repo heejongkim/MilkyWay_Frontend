@@ -2818,6 +2818,11 @@ server <- function(input, output, session) {
     return(!is.null(input$filesDIADDA))
   })
   outputOptions(output, 'datafilesReceivedDIADDA', suspendWhenHidden=FALSE)
+
+  output$datafilesReceivedDIADDA_DIA <-reactive({
+    return(!is.null(input$filesDIADDA_DIA))
+  })
+  outputOptions(output, 'datafilesReceivedDIADDA_DIA', suspendWhenHidden=FALSE)
   
   
   #We'll handle the file upload here! (LFQ // QA, just DDA)
@@ -2976,7 +2981,7 @@ server <- function(input, output, session) {
     #End LFQ DIA+DDA (DDA PORTION)
 
   #We'll handle the file upload here! (DIA+DDA) (DIA PORTION)
-  output$uploadedDIADDA<-renderText({
+  output$uploadedDIADDA_DIA<-renderText({
     inFiles <- input$filesDIADDA_DIA
     print(inFiles)
     
